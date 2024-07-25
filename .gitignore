@@ -1,4 +1,4 @@
-Logs/*
+Logs
 database.db
 database_backup.db
 deleted.txt
@@ -7,6 +7,7 @@ selfroles.txt
 starboard.txt
 card.png
 image.png
+.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
