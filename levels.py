@@ -59,8 +59,8 @@ def intersection(list1, list2): #intersection of 2 lists, returns only one item
 
 class leveling_system(commands.Cog):
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, bot):
+        self.bot = bot
         self.cleanup.start()
     
     @tasks.loop(time=datetime.time(hour=23, minute=59, second=55, tzinfo=datetime.datetime.now().astimezone().tzinfo))
@@ -210,5 +210,5 @@ class leveling_system(commands.Cog):
         base_embed.set_footer(text = f"Your position in ranking: {rank}", icon_url = "https://cdn.discordapp.com/icons/830239808596606976/a_f8ba2bc689224edbe81500225e8183a8.gif?size=1024")
         await ctx.send(embed = base_embed)
         
-async def setup(client):
-    await client.add_cog(leveling_system(client))
+async def setup(bot):
+    await bot.add_cog(leveling_system(bot))

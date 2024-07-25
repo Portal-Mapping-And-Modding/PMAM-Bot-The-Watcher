@@ -7,8 +7,8 @@ pmam_roleid_robot: int = 830240292183212042
 
 class Test(commands.Cog):
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self, bot):
+        self.bot = bot
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -26,8 +26,8 @@ class Test(commands.Cog):
     async def on_raw_reaction_add(self, ctx):
         if ctx.emoji.name != "weebcringe_magnesium":
             return
-        channel_starboard = self.client.get_channel(1192917950001315980)
-        message = await self.client.get_channel(ctx.channel_id).fetch_message(ctx.message_id)
+        channel_starboard = self.bot.get_channel(1192917950001315980)
+        message = await self.bot.get_channel(ctx.channel_id).fetch_message(ctx.message_id)
         for i in message.reactions:
             if i.is_custom_emoji() and i.emoji.id == 1081025872175308901 and i.count == 5 and message.author.id != 973750292074090506:
                 with open("starboard.txt", "r+") as f:
@@ -36,5 +36,5 @@ class Test(commands.Cog):
                         f.write(f"{str(message.id)}\n")
                         await channel_starboard.send(f"Message by @{message.author.name} from <#{message.channel.id}>:\n\n{message.content}{' '.join([j.url for j in message.attachments])}\n\nOriginal message: {message.jump_url}")
 
-async def setup(client):
-    await client.add_cog(Test(client))
+async def setup(bot):
+    await bot.add_cog(Test(bot))
