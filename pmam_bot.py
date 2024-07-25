@@ -139,22 +139,7 @@ def check_steam_games(link):
     else:
         return False
 
-def real():
-    url = "https://developer.valvesoftware.com/w/index.php?search=cubemap"
-    #url = "https://developer.valvesoftware.com/w/index.php?search=big_chungus"
-    r = requests.get(url,allow_redirects=False)
-    #r2 = requests.get(url2)
-    soup = BeautifulSoup(r.text, features="html.parser")
-    #soup2 = BeautifulSoup(r2.text, features="html.parser")
-    log(r.headers["Location"])
 
-
-#hex = cycle([0x12c6ce,0xa34ec9,0xce2a61,0xd8791d,0x46944f,0x52c995])
-hex = cycle([0xff0000,0xffff00,0x00ff00,0x00ffff,0x0000ff,0xff00ff])
-@tasks.loop(hours=6)
-async def special_role():
-    role = discord.utils.get(bot.guilds[0].roles, id = 998311522461818893)
-    await role.edit(colour = next(hex))
 
 @bot.event
 async def on_member_update(member_before, member_after):
