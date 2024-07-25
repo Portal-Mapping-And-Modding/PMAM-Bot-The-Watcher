@@ -11,7 +11,7 @@ import asyncio
 
 from logger import setup_logging, log
 
-token: str = os.getenv('TOKEN_PMAM')
+token: str = os.getenv('TOKEN')
 pmam_guildid: int = 830239808596606976
 test_guildid: int = 845791759984230430
 pmam_channelid_logs: int = 882296490314321961
