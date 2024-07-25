@@ -35,7 +35,7 @@ def setup_logging(base_path: str) -> None:
     logger.addHandler(journal.JournaldLogHandler())
 
 # A log function to both log to the log file and print to the console, printing to the console can be optional
-def log(msg: str, log_level: int = 0, console: bool = True) -> None:
+def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """Logs a message to both the console and the log file.
     Printing to console can be optional. Defaults to INFO logging with console set to True.
 

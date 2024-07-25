@@ -1,5 +1,9 @@
 #!/bin/bash
 
+echo "Pulling any new changes on PMAM-Bot/main..."
+git pull
+echo "Finished git pull!"
+
 echo "Starting The Watcher..."
 ./env/bin/python3 pmam_bot.py
 

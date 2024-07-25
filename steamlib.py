@@ -1,7 +1,4 @@
-import requests,os,json
-from dotenv import load_dotenv
-
-load_dotenv()
+import requests, os, json
 
 key = os.getenv("KEY")
 id_list = []

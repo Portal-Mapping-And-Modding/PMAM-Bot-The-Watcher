@@ -6,14 +6,17 @@ import os
 import datetime
 import requests
 from itertools import cycle
-import time
-from steamlib import id_to_name,vanity_to_id,get_friends_ids
+from steamlib import id_to_name, vanity_to_id, get_friends_ids
+import asyncio
 
 from logger import setup_logging, log
 
 token: str = os.getenv('TOKEN_PMAM')
-pmam_guidid: int = 830239808596606976
+pmam_guildid: int = 830239808596606976
+test_guildid: int = 845791759984230430
 pmam_channelid_logs: int = 882296490314321961
+pmam_channelid_modmail: int = 1265721193885863936
+test_channelid_modmail: int = 845791759984230433
 pmam_roleid_robot: int = 830240292183212042
 tz = datetime.datetime.now().astimezone().tzinfo
 
@@ -22,7 +25,7 @@ intents.members = True
 intents.presences = True
 intents.message_content = True
 
-class Bot(commands.Bot):
+class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
     # its prefix can be changed after configs are setup in bot_initialization
     def __init__(self, *, 
@@ -37,11 +40,11 @@ class Bot(commands.Bot):
             intents=intents)
 
     # Task to restart the bot so the sh script can backup the database
-    time = datetime.time(hour=23, minute=59, second=59, tzinfo=tz)
+    time = datetime.time(hour=00, tzinfo=tz)
     @tasks.loop(time=time)
     async def restart():
         log("Restarting and backing up bot!", 1)
-        await client.close()
+        await bot.close()
 
     # Runs when the bot is being setup
     async def setup_hook(self):
@@ -49,13 +52,19 @@ class Bot(commands.Bot):
         
         # Load extension modules
         await self.load_extension('pmam_extension')
-        #client.load_extension('pmam_extension2')
+        #bot.load_extension('pmam_extension2')
         await self.load_extension('levels')
-
-        # Sync application/hybrid commands with the PMAM Discord server
-        self.tree.copy_global_to(guild=discord.Object(id=pmam_guidid))
-        await self.tree.sync(guild=discord.Object(id=pmam_guidid))
         
+        # Sync application/hybrid commands with the PMAM Discord server
+        # Test bot is not in PMAM server so it can't sync specifically to PMAM
+        try:
+            self.tree.copy_global_to(guild=discord.Object(id=pmam_guildid))
+            await self.tree.sync(guild=discord.Object(id=pmam_guildid))
+        except Exception as e:
+            log("Application command syncing failed!", 1)
+            log("This is mostly likely because this is the test bot so please ignore.", 1)
+            log(e, 1)
+
         log("Finished setting up bot hook...")
 
     # Runs when the bot has finished running through setup_hook
@@ -86,7 +95,7 @@ class Bot(commands.Bot):
     #     log(ctx, 2)
     #     log(error, 2)
 
-client = Bot(intents = discord.Intents.all())
+bot = PMAMBot(intents = discord.Intents.all())
 
 def check_steam_games(link):
     link = f'{link}/games/?tab=all'
@@ -113,16 +122,16 @@ def real():
 hex = cycle([0xff0000,0xffff00,0x00ff00,0x00ffff,0x0000ff,0xff00ff])
 @tasks.loop(hours=6)
 async def special_role():
-    role = discord.utils.get(client.guilds[0].roles, id = 998311522461818893)
+    role = discord.utils.get(bot.guilds[0].roles, id = 998311522461818893)
     await role.edit(colour = next(hex))
 
-@client.event
+@bot.event
 async def on_member_update(member_before, member_after):
     if member_before.roles == member_after.roles:
         return
     
-    role = discord.utils.get(client.guilds[0].roles, id = 894351178702397520)
-    channel = client.get_channel(pmam_channelid_logs)
+    role = discord.utils.get(bot.guilds[0].roles, id = 894351178702397520)
+    channel = bot.get_channel(pmam_channelid_logs)
     
     if not (role in member_after.roles and role not in member_before.roles):
         return
@@ -133,16 +142,15 @@ async def on_member_update(member_before, member_after):
     embed.set_thumbnail(url=member_after.avatar.url)
     await channel.send(embed=embed)
 
-@client.event
+@bot.event
 async def on_member_join(member):
-    if member.guild.id != pmam_guidid:
+    if member.guild.id != pmam_guildid:
         return
 
-    time = datetime.datetime.datetime.now(datetime.timezone.utc)
     account_time = member.created_at
-    age = time - account_time
+    age = datetime.datetime.now(datetime.timezone.utc) - account_time
 
-    channel = client.get_channel(pmam_channelid_logs)
+    channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(title = "Member joined!",color=discord.Color.green())
     embed.add_field(name="User",value=f"{member.display_name}#{member.discriminator}", inline=False)
     embed.add_field(name="ID",value=member.id,inline=False)
@@ -150,32 +158,31 @@ async def on_member_join(member):
     await channel.send(embed=embed)
 
 
-@client.event
+@bot.event
 async def on_member_remove(member):
-    if member.guild.id != pmam_guidid:
+    if member.guild.id != pmam_guildid:
         return
-    
-    time = datetime.datetime.now(datetime.timezone.utc)
-    account_time = member.created_at
-    age = time - account_time
 
-    channel = client.get_channel(pmam_channelid_logs)
+    account_time = member.created_at
+    age = datetime.datetime.now(datetime.timezone.utc) - account_time
+
+    channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(title = "Member left!",color=discord.Color.red())
     embed.add_field(name="User",value=f"{member.display_name}#{member.discriminator}", inline=False)
     embed.add_field(name="ID",value=member.id,inline=False)
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
 
-@client.event
+@bot.event
 async def on_message_delete(message):
-    if message.author.bot and message.guild.id != pmam_guidid:
+    if message.author.bot and message.guild.id != pmam_guildid:
         return
 
-    channel = client.get_channel(pmam_channelid_logs)
-    embed = discord.Embed(color = 0xff470f,timestamp=datetime.datetime.now(),description=f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
-    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}",icon_url=message.author.avatar.url)
-    embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
-    await channel.send(embed=embed)
+    channel = bot.get_channel(pmam_channelid_logs)
+    embed = discord.Embed(color = 0xff470f, timestamp = datetime.datetime.now(), description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
+    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.avatar.url)
+    embed.set_footer(text = f"Author: {message.author.id} | Message ID: {message.id}")
+    await channel.send(embed = embed)
     
     if message.attachments is []:
         return
@@ -184,36 +191,37 @@ async def on_message_delete(message):
         if i.content_type.startswith("image"):
             # os.remove("image.png")
             await i.save("image.png")
-            image_embed = discord.Embed(color = 0xff470f,timestamp=datetime.datetime.now(),description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
-            image_embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}",icon_url=message.author.avatar.url)
-            image_embed.set_image(url = "attachment://image.png")
+            image_embed = discord.Embed(color=0xff470f, timestamp=datetime.datetime.now(), description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
+            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.avatar.url)
+            image_embed.set_image(url="attachment://image.png")
             image_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
-            await channel.send(file = discord.File("image.png"),embed=image_embed)
+            await channel.send(file=discord.File("image.png"), embed=image_embed)
 
 
-@client.event
+@bot.event
 async def on_message_edit(before, after):    
-    if (before.author.bot) or (before.guild.id != pmam_guidid) or (before.content == after.content):
+    if (before.author.bot) or (before.guild.id != pmam_guildid) or (before.content == after.content):
         return
     
-    channel = client.get_channel(pmam_channelid_logs)
-    embed = discord.Embed(color = 0x307dd5,timestamp=datetime.datetime.now(),description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
-    embed.set_author(name = f"{before.author.display_name}#{before.author.discriminator}",icon_url=before.author.avatar.url)
-    embed.add_field(name="Before",value=before.content, inline = False)
-    embed.add_field(name="After",value=after.content, inline = False)
+    channel = bot.get_channel(pmam_channelid_logs)
+    embed = discord.Embed(color=0x307dd5, timestamp=datetime.datetime.now(), description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
+    embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.avatar.url)
+    embed.add_field(name="Before", value=before.content, inline=False)
+    embed.add_field(name="After", value=after.content, inline=False)
     embed.set_footer(text=f"User ID: {before.author.id}")
     await channel.send(embed=embed)
 
 @client.command(aliases = ['id_check','check_id'])
+@bot.command(aliases = ['id_check','check_id'])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def _id_check(ctx, id = None):
     if id is None:
         id = ctx.author.id
-        user = await client.fetch_user(int(id))
+        user = await bot.fetch_user(int(id))
     else:    
         try:
-            user = await client.fetch_user(int(id))
+            user = await bot.fetch_user(int(id))
         except Exception:
             await ctx.send("An error has occured!")
     
@@ -233,20 +241,20 @@ async def _id_check(ctx, id = None):
         embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
         await ctx.send(embed=embed)
 
-@client.command()
+@bot.command()
 async def membercount(ctx):
     embed = discord.Embed(color=0x307dd4,timestamp=datetime.datetime.now())
     embed.add_field(name="Members",value=ctx.guild.member_count)
     await ctx.send(embed=embed)
 
-@client.command()
+@bot.command()
 @commands.has_permissions(ban_members=True)
 async def ban(ctx, user):
     try:
         if user.startswith("<"):
-            user = await client.fetch_user(int(user[2:-1]))
+            user = await bot.fetch_user(int(user[2:-1]))
         else:
-            user = await client.fetch_user(user)
+            user = await bot.fetch_user(user)
         await ctx.guild.ban(user)
         embed = discord.Embed(color=discord.Color.green(),description = f"<:vote_yes:975946668379889684> ***{user.display_name}#{user.discriminator} was banned***")
         await ctx.send(embed = embed)
@@ -258,11 +266,11 @@ def important_message(message):
     return ("instructions on how to verify" not in message.content)
 
 
-@client.command()
+@bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def purge(ctx,number):
-    channel = client.get_channel(pmam_channelid_logs)
+    channel = bot.get_channel(pmam_channelid_logs)
     try:
         number = int(number)
         os.remove("./deleted.txt")
@@ -285,13 +293,13 @@ async def purge(ctx,number):
         await ctx.send("Please provide a number!")
 
 
-@client.command()
+@bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx):
     time = datetime.datetime.now(datetime.timezone.utc)
     account_time = ctx.author.created_at
     age = time - account_time
-    channel = client.get_channel(pmam_channelid_logs)
+    channel = bot.get_channel(pmam_channelid_logs)
     with open("./locked_ids.txt","r") as f:
         banned_ids = f.read()
     if age.days > 450:
@@ -302,10 +310,10 @@ async def verify(ctx):
             if role in ctx.author.roles:
                 await ctx.send('You are already verified!')
             else:
-                await ctx.send("Verification sucessful!")
-                time.sleep(0.9)
+                await ctx.send("Verification successful!")
+                await asyncio.sleep(0.9)
                 await ctx.author.add_roles(role)
-                time.sleep(0.9)
+                await asyncio.sleep(0.9)
                 await ctx.channel.purge(limit = 2)
     else:
         await ctx.send("Since your account is rather new you will need to connect your Steam account and then ping any online moderator.")
@@ -315,10 +323,10 @@ async def verify(ctx):
         embed.set_thumbnail(url=ctx.author.avatar.url)
         await channel.send(embed=embed)
 
-#@client.command()
+#@bot.command()
 #async def steamverify(ctx, steamlink = None):
     #role = discord.utils.get(ctx.author.guild.roles, id = 894351178702397520)
-    #channel = client.get_channel(pmam_channelid_logs)
+    #channel = bot.get_channel(pmam_channelid_logs)
     #if role in ctx.author.roles:
         #await ctx.send('You are already verified!')
     #else:
@@ -344,19 +352,19 @@ async def verify(ctx):
                 #await ctx.send("This is not Steam link!")
         #else:
             #await ctx.send("Please provide link to Steam profile!")
-            #user = await client.fetch_user(ctx.author.id)
+            #user = await bot.fetch_user(ctx.author.id)
             #profile = await user.profile()
             #print(profile)
 
-@client.command()
+@bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def lockverify(ctx,user):
     try:
         if user.startswith("<"):
-            user = await client.fetch_user(int(user[2:-1]))
+            user = await bot.fetch_user(int(user[2:-1]))
         else:
-            user = await client.fetch_user(user)
+            user = await bot.fetch_user(user)
     except:
         await ctx.send("Invalid ID/user!")
         
@@ -367,7 +375,7 @@ async def lockverify(ctx,user):
         else:
             await ctx.send("This user is already blocked!")
 
-@client.command()
+@bot.command()
 async def search(ctx,*, word:str):
     word = word.replace(" ","_")
     url = f"https://developer.valvesoftware.com/w/index.php?search={word}"
@@ -381,7 +389,7 @@ async def search(ctx,*, word:str):
     except KeyError:
         await ctx.send(f'This page might not exist, check it manually: {url}')
     
-@client.command()
+@bot.command()
 async def mutual_friends(ctx, link1, link2):
     if "profiles" in link1: link1 = link1[36:]
     elif link1.endswith("/"):
@@ -408,14 +416,14 @@ async def mutual_friends(ctx, link1, link2):
         await ctx.send("An error occured!")
         log(e, 2)
 
-@client.command()
+@bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def mass_id_check(ctx):
-    channel = client.get_channel(pmam_channelid_logs)
+    channel = bot.get_channel(pmam_channelid_logs)
     em1 = discord.Embed(title = "`?mass_id_check` command used!",color=discord.Color.green())
     await channel.send(embed=em1)
-    for i in client.guilds[0].humans:
+    for i in bot.guilds[0].humans:
         if len(i.roles) == 1:
             time = datetime.datetime.now(datetime.timezone.utc)
             account_time = i.created_at
@@ -425,7 +433,7 @@ async def mass_id_check(ctx):
             embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
             await channel.send(embed = embed)
             
-@client.command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def selfroles(ctx):
     value2 = []
@@ -444,7 +452,7 @@ async def selfroles(ctx):
         embed.add_field(name="You can have these roles: ",value=f"{value}",inline=False)
         await ctx.send(embed = embed)
 
-@client.command(aliases = ["selfrole_add","selfroles_add"])
+@bot.command(aliases = ["selfrole_add","selfroles_add"])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def _selfrole_add(ctx,*,role_name:str):
@@ -463,7 +471,7 @@ async def _selfrole_add(ctx,*,role_name:str):
     except:
         await ctx.send(f"Couldn't find role with a name `{role_name}`")
 
-@client.command(aliases = ["selfrole_remove","selfroles_remove"])
+@bot.command(aliases = ["selfrole_remove","selfroles_remove"])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def _selfrole_remove(ctx,*,role_name:str):
@@ -488,7 +496,7 @@ async def _selfrole_remove(ctx,*,role_name:str):
     except:
         await ctx.send(f"Couldn't find role with a name `{role_name}`")
         
-@client.command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def iam(ctx,*,role_name:str):
     try:
@@ -506,7 +514,7 @@ async def iam(ctx,*,role_name:str):
     except:
         await ctx.send("Invalid role name!")
 
-@client.command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def iamnot(ctx,*,role_name:str):
     try:
@@ -524,33 +532,33 @@ async def iamnot(ctx,*,role_name:str):
     except:
         await ctx.send("Invalid role name!")
 
-@client.command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 @commands.has_permissions(ban_members=True)
 async def chocolate(ctx, user):
     try:
         if user.startswith("<"):
-            user = await client.fetch_user(int(user[2:-1]))
+            user = await bot.fetch_user(int(user[2:-1]))
         else:
-            user = await client.fetch_user(user)
+            user = await bot.fetch_user(user)
     except:
         await ctx.send("Invalid ID/user!")
         return
     await ctx.send(f"{user.mention} has been given one chocolate bar :chocolate_bar:")
 
-@client.hybrid_command()
+@bot.hybrid_command()
 async def ping(ctx: commands.Context):
     """Pings the bot"""
 
     ping_embed = discord.Embed(
         title="Pong!",
-        description=f'**Latency: {round((client.latency * 1000), 2)} ms**',
+        description=f'**Latency: {round((bot.latency * 1000), 2)} ms**',
         colour=discord.Colour.brand_green())
     ping_thumbnail = discord.File(f"{os.getcwd() + os.sep}Images{os.sep}ping_pong.png", filename="ping_thumbnail.png")
     ping_embed.set_thumbnail(url="attachment://ping_thumbnail.png")
     await ctx.send(file=ping_thumbnail, embed=ping_embed)
 
-@client.command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 @commands.has_permissions(ban_members=True)
 async def restart(ctx: commands.Context):
@@ -558,7 +566,7 @@ async def restart(ctx: commands.Context):
 
     log("Manually restarting the bot!", 1)
     await ctx.send("Restarting, good bye!")
-    await client.close()
+    await bot.close()
 
 setup_logging(os.getcwd())
-client.run(token, log_handler=None, root_logger=True)
+bot.run(token, log_handler=None, root_logger=True)
