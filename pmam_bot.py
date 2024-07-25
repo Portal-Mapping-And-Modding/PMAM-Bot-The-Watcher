@@ -211,7 +211,6 @@ async def on_message_edit(before, after):
     embed.set_footer(text=f"User ID: {before.author.id}")
     await channel.send(embed=embed)
 
-@client.command(aliases = ['id_check','check_id'])
 @bot.command(aliases = ['id_check','check_id'])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
