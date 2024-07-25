@@ -1,12 +1,11 @@
 from io import BytesIO
-import datetime
-import discord, sqlite3, requests
+import discord, sqlite3, requests, datetime, os
 from discord.ext import commands, tasks
 from PIL import Image, ImageFont, ImageDraw
 
 from logger import log
 
-pmam_guidid = 830239808596606976 #originally 969790418394964019
+pmam_guildid = 830239808596606976 #originally 969790418394964019
 pmam_roleid_robot: int = 830240292183212042
 
 excluded_channels = [830243239953039381, 991784426482704405, 1120154927528951828] #second one is on pbackstage
@@ -62,25 +61,37 @@ class leveling_system(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.cleanup.start()
+        self.cooldowns = {}
     
     @tasks.loop(time=datetime.time(hour=23, minute=59, second=55, tzinfo=datetime.datetime.now().astimezone().tzinfo))
     async def cleanup(self):
-        cooldowns = {}
+        self.cooldowns = {}
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if (message.guild.id != pmam_guidid) or (message.author.bot) or (message.channel.id in excluded_channels):
+        if isinstance(message.channel, discord.DMChannel):
             return
 
-        if message.author.id in cooldowns.keys():
-            if cooldowns[message.author.id] < datetime.datetime.timestamp(datetime.datetime.now()):
+        if (message.guild.id != pmam_guildid) or (message.author.bot) or (message.channel.id in exp_channels):
+            return
+
+        if message.author.id not in self.cooldowns.keys():
+            self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now())
+        
+        if self.cooldowns[message.author.id] < datetime.datetime.timestamp(datetime.datetime.now()):
+            if (message.author.id == os.getenv('THE_ID')):
                 if len(message.content.split()) > 20:
-                    add_exp(message.author.id, 2)
+                    add_exp(message.author.id, 0.2)
                 else:
-                    add_exp(message.author.id, 1)
-                cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 15 #15 seconds cooldown
-        else:
-            cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now())
+                    add_exp(message.author.id, 0.1)
+                self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 50 #50 seconds cooldown
+                return
+
+            if len(message.content.split()) > 20:
+                add_exp(message.author.id, 2)
+            else:
+                add_exp(message.author.id, 1)
+            self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 15 #15 seconds cooldown 
    
     @commands.command()
     @commands.has_permissions(kick_members=True)

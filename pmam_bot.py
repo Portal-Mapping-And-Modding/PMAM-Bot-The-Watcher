@@ -6,15 +6,17 @@ import os
 import datetime
 import requests
 from itertools import cycle
-import time
-from steamlib import id_to_name,vanity_to_id,get_friends_ids
+from steamlib import id_to_name, vanity_to_id, get_friends_ids
 import asyncio
 
 from logger import setup_logging, log
 
 token: str = os.getenv('TOKEN_PMAM')
-pmam_guidid: int = 830239808596606976
+pmam_guildid: int = 830239808596606976
+test_guildid: int = 845791759984230430
 pmam_channelid_logs: int = 882296490314321961
+pmam_channelid_modmail: int = 1265721193885863936
+test_channelid_modmail: int = 845791759984230433
 pmam_roleid_robot: int = 830240292183212042
 tz = datetime.datetime.now().astimezone().tzinfo
 
@@ -38,7 +40,7 @@ class PMAMBot(commands.Bot):
             intents=intents)
 
     # Task to restart the bot so the sh script can backup the database
-    time = datetime.time(hour=23, minute=59, second=59, tzinfo=tz)
+    time = datetime.time(hour=00, tzinfo=tz)
     @tasks.loop(time=time)
     async def restart():
         log("Restarting and backing up bot!", 1)
@@ -52,11 +54,17 @@ class PMAMBot(commands.Bot):
         await self.load_extension('pmam_extension')
         #bot.load_extension('pmam_extension2')
         await self.load_extension('levels')
-
-        # Sync application/hybrid commands with the PMAM Discord server
-        self.tree.copy_global_to(guild=discord.Object(id=pmam_guidid))
-        await self.tree.sync(guild=discord.Object(id=pmam_guidid))
         
+        # Sync application/hybrid commands with the PMAM Discord server
+        # Test bot is not in PMAM server so it can't sync specifically to PMAM
+        try:
+            self.tree.copy_global_to(guild=discord.Object(id=pmam_guildid))
+            await self.tree.sync(guild=discord.Object(id=pmam_guildid))
+        except Exception as e:
+            log("Application command syncing failed!", 1)
+            log("This is mostly likely because this is the test bot so please ignore.", 1)
+            log(e, 1)
+
         log("Finished setting up bot hook...")
 
     # Runs when the bot has finished running through setup_hook
@@ -122,7 +130,8 @@ async def on_member_update(member_before, member_after):
     if member_before.roles == member_after.roles:
         return
     
-    role = discord.utils.get(client.guilds[0].roles, id = 894351178702397520)
+    role = discord.utils.get(bot.guilds[0].roles, id = 894351178702397520)
+    channel = bot.get_channel(pmam_channelid_logs)
     
     if not (role in member_after.roles and role not in member_before.roles):
         return
@@ -135,12 +144,11 @@ async def on_member_update(member_before, member_after):
 
 @bot.event
 async def on_member_join(member):
-    if member.guild.id != pmam_guidid:
+    if member.guild.id != pmam_guildid:
         return
 
-    time = datetime.datetime.datetime.now(datetime.timezone.utc)
     account_time = member.created_at
-    age = time - account_time
+    age = datetime.datetime.now(datetime.timezone.utc) - account_time
 
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(title = "Member joined!",color=discord.Color.green())
@@ -152,12 +160,11 @@ async def on_member_join(member):
 
 @bot.event
 async def on_member_remove(member):
-    if member.guild.id != pmam_guidid:
+    if member.guild.id != pmam_guildid:
         return
-    
-    time = datetime.datetime.now(datetime.timezone.utc)
+
     account_time = member.created_at
-    age = time - account_time
+    age = datetime.datetime.now(datetime.timezone.utc) - account_time
 
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(title = "Member left!",color=discord.Color.red())
@@ -168,14 +175,14 @@ async def on_member_remove(member):
 
 @bot.event
 async def on_message_delete(message):
-    if message.author.bot and message.guild.id != pmam_guidid:
+    if message.author.bot and message.guild.id != pmam_guildid:
         return
 
-    embed = discord.Embed(color = 0xff470f,timestamp=datetime.datetime.now(),description=f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
-    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}",icon_url=message.author.avatar.url)
-    embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
-    await channel.send(embed=embed)
     channel = bot.get_channel(pmam_channelid_logs)
+    embed = discord.Embed(color = 0xff470f, timestamp = datetime.datetime.now(), description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
+    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.avatar.url)
+    embed.set_footer(text = f"Author: {message.author.id} | Message ID: {message.id}")
+    await channel.send(embed = embed)
     
     if message.attachments is []:
         return
@@ -184,23 +191,23 @@ async def on_message_delete(message):
         if i.content_type.startswith("image"):
             # os.remove("image.png")
             await i.save("image.png")
-            image_embed = discord.Embed(color = 0xff470f,timestamp=datetime.datetime.now(),description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
-            image_embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}",icon_url=message.author.avatar.url)
-            image_embed.set_image(url = "attachment://image.png")
+            image_embed = discord.Embed(color=0xff470f, timestamp=datetime.datetime.now(), description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
+            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.avatar.url)
+            image_embed.set_image(url="attachment://image.png")
             image_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
-            await channel.send(file = discord.File("image.png"),embed=image_embed)
+            await channel.send(file=discord.File("image.png"), embed=image_embed)
 
 
 @bot.event
 async def on_message_edit(before, after):    
-    if (before.author.bot) or (before.guild.id != pmam_guidid) or (before.content == after.content):
+    if (before.author.bot) or (before.guild.id != pmam_guildid) or (before.content == after.content):
         return
     
-    embed = discord.Embed(color = 0x307dd5,timestamp=datetime.datetime.now(),description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
-    embed.set_author(name = f"{before.author.display_name}#{before.author.discriminator}",icon_url=before.author.avatar.url)
-    embed.add_field(name="Before",value=before.content, inline = False)
-    embed.add_field(name="After",value=after.content, inline = False)
     channel = bot.get_channel(pmam_channelid_logs)
+    embed = discord.Embed(color=0x307dd5, timestamp=datetime.datetime.now(), description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
+    embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.avatar.url)
+    embed.add_field(name="Before", value=before.content, inline=False)
+    embed.add_field(name="After", value=after.content, inline=False)
     embed.set_footer(text=f"User ID: {before.author.id}")
     await channel.send(embed=embed)
 
