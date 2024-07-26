@@ -86,7 +86,7 @@ class PMAMBot(commands.Bot):
         if isinstance(exception, discord.ext.commands.errors.CommandNotFound):
             return
         if isinstance(exception, discord.ext.commands.errors.MissingRequiredArgument):
-            await ctx.send(f"You're missing the `{str(exception).split()[0]}` parameter of this command.", ephemeral=True)
+            await ctx.send(f"You're missing the `{str(exception).split()[0]}` parameter of this command.", delete_after=2)
             return
         
         log(
@@ -321,7 +321,7 @@ async def purge(ctx: commands.Context, number: int):
                 f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
     await ctx.channel.purge(limit=number+1, check=important_message)
-    await ctx.send(f"Purged `{number}` messages!", ephemeral=True)
+    await ctx.send(f"Purged `{number}` messages!", delete_after=2)
     await channel.send(file=discord.File("./deleted.txt"))
 
 
