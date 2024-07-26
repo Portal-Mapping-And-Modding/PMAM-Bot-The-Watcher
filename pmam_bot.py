@@ -1,50 +1,39 @@
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
-import os
-#from bs4 import BeautifulSoup
-import datetime
-import requests
 from itertools import cycle
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
-import asyncio
+import os, datetime, requests, asyncio, traceback
 
 from logger import setup_logging, log
 
 token: str = os.getenv('TOKEN')
 pmam_guildid: int = 830239808596606976
-test_guildid: int = 845791759984230430
+test_guildid: int = 845791759984230430 #! REWORK FOR BOT TO BE ABLE TO BE PROPERLY TESTED
 pmam_channelid_logs: int = 882296490314321961
 pmam_channelid_modmail: int = 1265721193885863936
+pmam_channelid_modbots: int = 830243685135941652
 test_channelid_modmail: int = 845791759984230433
 pmam_roleid_robot: int = 830240292183212042
 tz = datetime.datetime.now().astimezone().tzinfo
 
-intents = discord.Intents.default()
-intents.members = True
-intents.presences = True
-intents.message_content = True
-
 class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
     # its prefix can be changed after configs are setup in bot_initialization
-    def __init__(self, *, 
-            command_prefix: str = "?",
-            help_command = None,
-            description: str = "",
-            intents: discord.Intents):
-        super().__init__(
-            command_prefix=command_prefix,
-            help_command=help_command,
-            description=description,
-            intents=intents)
+    def __init__(self, *,
+                 command_prefix: str = "?",
+                 description: str = "The Portal Mapping and Modding Discord server's bot, The Watcher!",
+                 intents: discord.Intents
+                 ):
+        super().__init__(command_prefix=command_prefix, description=description, intents=intents)
+        self.bot.dm_cooldown = {}
 
     # Task to restart the bot so the sh script can backup the database
     time = datetime.time(hour=00, tzinfo=tz)
     @tasks.loop(time=time)
-    async def restart():
+    async def restart(self):
         log("Restarting and backing up bot!", 1)
-        await bot.close()
+        await self.close()
 
     # Runs when the bot is being setup
     async def setup_hook(self):
@@ -52,7 +41,6 @@ class PMAMBot(commands.Bot):
         
         # Load extension modules
         await self.load_extension('pmam_extension')
-        #bot.load_extension('pmam_extension2')
         await self.load_extension('levels')
         
         # Sync application/hybrid commands with the PMAM Discord server
@@ -64,6 +52,8 @@ class PMAMBot(commands.Bot):
             log("Application command syncing failed!", 1)
             log("This is mostly likely because this is the test bot so please ignore.", 1)
             log(e, 1)
+
+        self.restart.start()
 
         log("Finished setting up bot hook...")
 
@@ -80,7 +70,7 @@ class PMAMBot(commands.Bot):
                 name="Hammer Crash For The Millonth Time :("
             )
         )
-        self.restart.start()
+        
         log("Alive and connected!")
         log(f'Logged on as {self.user}!')
         log("----------------------------")
@@ -91,10 +81,50 @@ class PMAMBot(commands.Bot):
     async def on_connect(self):
         log("The bot has connected to Discord!")
     
-    # async def on_command_error(self, ctx, error):
-    #     log(ctx, 2)
-    #     log(error, 2)
+    # Called when any non-caught errors occur with any commands
+    async def on_command_error(self, ctx: commands.Context, exception):
+        if isinstance(exception, discord.ext.commands.errors.CommandNotFound):
+            return
 
+        log(
+            f'\nAn error relating to bot commands occurred!'\
+            f'\nEvent details: {exception}'\
+            f'\nCheck the latest log for the full traceback...',
+            log_level=2
+        )
+        log("Check the latest log for the full traceback...", 2)
+        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
+
+        # Notify mods and admins the bot did not work correctly
+        await self.get_channel(pmam_channelid_modbots).send(
+            f'\nAn error relating to bot commands occurred!'\
+            f'\nEvent details: {exception}'\
+            f'\nCheck the latest log for the full traceback...'
+        )
+
+    # Called when there are any non-caught errors that occur
+    async def on_error(self, event):
+        log(
+            f'\nAn error occurred with the bot!'\
+            f'\nEvent details: {event}'\
+            f'\nCheck the latest log for the full traceback...',
+            log_level=2
+        )
+        log("Check the latest log for the full traceback...", 2)
+        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
+
+        # Notify mods and admins the bot did not work correctly
+        await self.get_channel(pmam_channelid_modbots).send(
+            f'\nAn error occurred with the bot!'\
+            f'\nEvent details: {event}'\
+            f'\nCheck the latest log for the full traceback...'
+        )
+        log(traceback.format_exc())
+
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
+intents.message_content = True
 bot = PMAMBot(intents = discord.Intents.all())
 
 def check_steam_games(link):
@@ -142,7 +172,6 @@ async def on_member_join(member):
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
 
-
 @bot.event
 async def on_member_remove(member):
     if member.guild.id != pmam_guildid:
@@ -158,14 +187,16 @@ async def on_member_remove(member):
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
 
-@bot.event
+@bot.event #! REWORK
 async def on_message_delete(message):
     if message.author.bot and message.guild.id != pmam_guildid:
         return
+    
+    if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
 
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(color = 0xff470f, timestamp = datetime.datetime.now(), description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
-    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.avatar.url)
+    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.display_avatar.url)
     embed.set_footer(text = f"Author: {message.author.id} | Message ID: {message.id}")
     await channel.send(embed = embed)
     
@@ -177,24 +208,45 @@ async def on_message_delete(message):
             # os.remove("image.png")
             await i.save("image.png")
             image_embed = discord.Embed(color=0xff470f, timestamp=datetime.datetime.now(), description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
-            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.avatar.url)
+            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.display_avatar.url)
             image_embed.set_image(url="attachment://image.png")
             image_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
             await channel.send(file=discord.File("image.png"), embed=image_embed)
-
 
 @bot.event
 async def on_message_edit(before, after):    
     if (before.author.bot) or (before.guild.id != pmam_guildid) or (before.content == after.content):
         return
     
+    if len(before.content) > 1024: before.content = before.content[:995] + "\nMore than 1024 characters..."
+    if len(after.content) > 1024: after.content = after.content[:995] + "\nMore than 1024 characters..."
+    
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(color=0x307dd5, timestamp=datetime.datetime.now(), description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
-    embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.avatar.url)
+    embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.display_avatar.url)
     embed.add_field(name="Before", value=before.content, inline=False)
     embed.add_field(name="After", value=after.content, inline=False)
     embed.set_footer(text=f"User ID: {before.author.id}")
     await channel.send(embed=embed)
+
+@bot.event
+async def on_message(message):
+    if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guildid).get_member(message.author.id) == None):
+        return
+
+    if message.author.id in bot.dm_cooldown.keys() and bot.dm_cooldown[message.author.id] > datetime.datetime.now().second:
+        await message.channel.send(f"DM messaging is on cooldown for 15 seconds!")
+
+    if bot.dm_cooldown.get(message.author.id): bot.dm_cooldown.pop(message.author.id)
+    channel = bot.get_channel(pmam_channelid_modmail)
+    embed = discord.Embed(color=0xff470f)
+    embed.set_author(name=f"Author: {message.author.display_name}")
+    embed.set_footer(text=f"User ID: {message.author.id}")
+    embed.set_thumbnail(url=(message.author.display_avatar.url))
+    embed.add_field(name="Message:", value=message.content, inline=False)
+    
+    bot.dm_cooldown[message.author.id] = datetime.datetime.now().second + 15
+    await channel.send(embed=embed)    
 
 @bot.command(aliases = ['id_check','check_id'])
 @commands.has_permissions(ban_members=True)
@@ -249,15 +301,14 @@ async def ban(ctx, user):
 def important_message(message):
     return ("instructions on how to verify" not in message.content)
 
-
-@bot.command()
+@bot.command() #! REWORK
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def purge(ctx,number):
     channel = bot.get_channel(pmam_channelid_logs)
     try:
         number = int(number)
-        os.remove("./deleted.txt")
+        if os.path.exists("./deleted.txt"): os.remove("./deleted.txt")
         with open ("./deleted.txt", "w") as f:
             list = []
             async for i in ctx.history(limit=(number+1)):
@@ -269,9 +320,9 @@ async def purge(ctx,number):
                else:
                    f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
-        await ctx.channel.purge(limit=number+1,check = important_message)
-        await ctx.send(f"Purged `{number}` messages!",delete_after = 0.9)
-        await channel.send(file = discord.File("./deleted.txt"))
+        await ctx.channel.purge(limit=number+1, check=important_message)
+        await ctx.send(f"Purged `{number}` messages!", delete_after=2)
+        await channel.send(file=discord.File("./deleted.txt"))
     except Exception as e:
         log(e, 2)
         await ctx.send("Please provide a number!")
@@ -286,25 +337,26 @@ async def verify(ctx):
     channel = bot.get_channel(pmam_channelid_logs)
     with open("./locked_ids.txt","r") as f:
         banned_ids = f.read()
-    if age.days > 450:
-        role = discord.utils.get(ctx.author.guild.roles, id = 894351178702397520)
         if str(ctx.author.id) in banned_ids:
             await ctx.send("The moderator team has blocked you from using the verification commands! Please ping an online mod to sort thing out.")
+        f.close()
+            
+    if age.days > 450:
+        role = discord.utils.get(ctx.author.guild.roles, id = 894351178702397520)
+        if role in ctx.author.roles:
+            await ctx.send('You are already verified!')
         else:
-            if role in ctx.author.roles:
-                await ctx.send('You are already verified!')
-            else:
-                await ctx.send("Verification successful!")
-                await asyncio.sleep(0.9)
-                await ctx.author.add_roles(role)
-                await asyncio.sleep(0.9)
-                await ctx.channel.purge(limit = 2)
+            await ctx.send("Verification successful!")
+            await asyncio.sleep(1)
+            await ctx.author.add_roles(role)
+            await asyncio.sleep(1)
+            await ctx.channel.purge(limit = 2)
     else:
         await ctx.send("Since your account is rather new you will need to connect your Steam account and then ping any online moderator.")
-        embed = discord.Embed(title = "`?verify` command failed!",color=discord.Color.red())
-        embed.add_field(name="User",value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
-        embed.add_field(name="ID",value=ctx.author.id,inline=False)
-        embed.set_thumbnail(url=ctx.author.avatar.url)
+        embed = discord.Embed(title = "`?verify` command failed!", color=discord.Color.red())
+        embed.add_field(name="User", value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
+        embed.add_field(name="ID", value=ctx.author.id, inline=False)
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
         await channel.send(embed=embed)
 
 #@bot.command()
@@ -323,14 +375,14 @@ async def verify(ctx):
                     #embed.add_field(name="User",value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
                     #embed.add_field(name="ID",value=ctx.author.id,inline=False)
                     #embed.add_field(name="Used link",value=steamlink,inline=False)
-                    #embed.set_thumbnail(url=ctx.author.avatar.url)
+                    #embed.set_thumbnail(url=ctx.author.display_avatar.url)
                     #await channel.send(embed=embed)
                 #elif check_steam_games(steamlink) is False:
                     #await ctx.send("Verification failed! Make sure you have your games set to be publicly visible")
                     #embed = discord.Embed(title = "`?steamverify` command failed!",color=discord.Color.red())
                     #embed.add_field(name="User",value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
                     #embed.add_field(name="ID",value=ctx.author.id,inline=False)
-                    #embed.set_thumbnail(url=ctx.author.avatar.url)
+                    #embed.set_thumbnail(url=ctx.author.display_avatar.url)
                     #await channel.send(embed=embed)
             #else:
                 #await ctx.send("This is not Steam link!")
@@ -551,6 +603,19 @@ async def restart(ctx: commands.Context):
     log("Manually restarting the bot!", 1)
     await ctx.send("Restarting, good bye!")
     await bot.close()
+
+@bot.command()
+@commands.bot_has_role(pmam_roleid_robot)
+@commands.has_permissions(ban_members=True)
+async def reply(ctx: commands.Context, userid: discord.Member, message: str):
+    """Anomalously replies to a select user.
+
+    Args:
+        ctx (commands.Context): Command context.
+        userid (discord.Member): The Member/User to target.
+    """
+    reply_user = await bot.get_user(userid)
+    await bot.send_message(reply_user, "Hello!")
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)

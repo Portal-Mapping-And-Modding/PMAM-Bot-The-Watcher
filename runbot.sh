@@ -1,6 +1,7 @@
 #!/bin/bash
 
 echo "Pulling any new changes on PMAM-Bot/main..."
+git reset --hard HEAD
 git pull
 echo "Finished git pull!"
 
