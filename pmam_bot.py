@@ -26,7 +26,7 @@ class PMAMBot(commands.Bot):
                  intents: discord.Intents
                  ):
         super().__init__(command_prefix=command_prefix, description=description, intents=intents)
-        self.bot.dm_cooldown = {}
+        self.dm_cooldown = {}
 
     # Task to restart the bot so the sh script can backup the database
     time = datetime.time(hour=00, tzinfo=tz)
