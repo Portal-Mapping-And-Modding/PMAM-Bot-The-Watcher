@@ -90,7 +90,7 @@ class leveling_system(commands.Cog):
             self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now())
         
         if self.cooldowns[message.author.id] < datetime.datetime.timestamp(datetime.datetime.now()):
-            if (message.author.id == os.getenv('THE_ID')):
+            if (message.author.id == int(os.getenv('THE_ID'))):
                 if len(message.content.split()) > 20:
                     add_exp(message.author.id, 0.2)
                 else:
