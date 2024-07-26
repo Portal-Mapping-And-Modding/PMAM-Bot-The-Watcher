@@ -86,7 +86,7 @@ class PMAMBot(commands.Bot):
         if isinstance(exception, discord.ext.commands.errors.CommandNotFound):
             return
         if isinstance(exception, discord.ext.commands.errors.MissingRequiredArgument):
-            await ctx.send(f"You're missing the `{str(exception).split()[0]}` parameter of this command.", ephemeral=True)
+            await ctx.send(f"You're missing the `{str(exception).split()[0]}` parameter of this command.", delete_after=2)
             return
         
         log(
