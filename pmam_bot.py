@@ -278,7 +278,7 @@ async def _id_check(ctx, id = None):
         embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
         await ctx.send(embed=embed)
 
-@bot.command()
+@bot.hybrid_command()
 async def membercount(ctx):
     embed = discord.Embed(color=0x307dd4,timestamp=datetime.datetime.now())
     embed.add_field(name="Members",value=ctx.guild.member_count)
@@ -286,6 +286,7 @@ async def membercount(ctx):
 
 @bot.command()
 @commands.has_permissions(ban_members=True)
+@commands.bot_has_role(pmam_roleid_robot)
 async def ban(ctx, user):
     try:
         if user.startswith("<"):
@@ -305,28 +306,23 @@ def important_message(message):
 @bot.command() #! REWORK
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def purge(ctx,number):
+async def purge(ctx: commands.Context, number: int):
     channel = bot.get_channel(pmam_channelid_logs)
-    try:
-        number = int(number)
-        if os.path.exists("./deleted.txt"): os.remove("./deleted.txt")
-        with open ("./deleted.txt", "w") as f:
-            list = []
-            async for i in ctx.history(limit=(number+1)):
-               list.append(i)
-            f.write(f"Deleted messages log from: #{ctx.channel.name}\n")
-            for i in reversed(list):
-               if i.attachments == []:
-                   f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content}\n")
-               else:
-                   f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
+    if os.path.exists("./deleted.txt"): os.remove("./deleted.txt")
+    with open ("./deleted.txt", "w") as f:
+        list = []
+        async for i in ctx.history(limit=(number+1)):
+            list.append(i)
+        f.write(f"Deleted messages log from: #{ctx.channel.name}\n")
+        for i in reversed(list):
+            if i.attachments == []:
+                f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content}\n")
+            else:
+                f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
-        await ctx.channel.purge(limit=number+1, check=important_message)
-        await ctx.send(f"Purged `{number}` messages!", delete_after=2)
-        await channel.send(file=discord.File("./deleted.txt"))
-    except Exception as e:
-        log(e, 2)
-        await ctx.send("Please provide a number!")
+    await ctx.channel.purge(limit=number+1, check=important_message)
+    await ctx.send(f"Purged `{number}` messages!", delete_after=2)
+    await channel.send(file=discord.File("./deleted.txt"))
 
 
 @bot.hybrid_command()
@@ -617,6 +613,7 @@ async def reply(ctx: commands.Context, user: discord.Member, message: str):
     """
     
     await bot.get_user(user.id).send(message)
+    await ctx.send(f"DM has been sent to {user.name}!")
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
