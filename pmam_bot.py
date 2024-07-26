@@ -207,10 +207,12 @@ async def on_member_remove(member):
 async def on_message_delete(message):
     if message.author.bot and message.guild.id != pmam_guildid:
         return
+    
+    if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
 
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(color = 0xff470f, timestamp = datetime.datetime.now(), description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
-    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.avatar.url)
+    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.display_avatar.url)
     embed.set_footer(text = f"Author: {message.author.id} | Message ID: {message.id}")
     await channel.send(embed = embed)
     
@@ -222,20 +224,22 @@ async def on_message_delete(message):
             # os.remove("image.png")
             await i.save("image.png")
             image_embed = discord.Embed(color=0xff470f, timestamp=datetime.datetime.now(), description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
-            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.avatar.url)
+            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.display_avatar.url)
             image_embed.set_image(url="attachment://image.png")
             image_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
             await channel.send(file=discord.File("image.png"), embed=image_embed)
-
 
 @bot.event
 async def on_message_edit(before, after):    
     if (before.author.bot) or (before.guild.id != pmam_guildid) or (before.content == after.content):
         return
     
+    if len(before.content) > 1024: before.content = before.content[:995] + "\nMore than 1024 characters..."
+    if len(after.content) > 1024: after.content = after.content[:995] + "\nMore than 1024 characters..."
+    
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(color=0x307dd5, timestamp=datetime.datetime.now(), description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
-    embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.avatar.url)
+    embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.display_avatar.url)
     embed.add_field(name="Before", value=before.content, inline=False)
     embed.add_field(name="After", value=after.content, inline=False)
     embed.set_footer(text=f"User ID: {before.author.id}")
@@ -350,7 +354,7 @@ async def verify(ctx):
         embed = discord.Embed(title = "`?verify` command failed!", color=discord.Color.red())
         embed.add_field(name="User", value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
         embed.add_field(name="ID", value=ctx.author.id, inline=False)
-        embed.set_thumbnail(url=ctx.author.avatar.url)
+        embed.set_thumbnail(url=ctx.author.display_avatar.url)
         await channel.send(embed=embed)
 
 #@bot.command()
@@ -369,14 +373,14 @@ async def verify(ctx):
                     #embed.add_field(name="User",value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
                     #embed.add_field(name="ID",value=ctx.author.id,inline=False)
                     #embed.add_field(name="Used link",value=steamlink,inline=False)
-                    #embed.set_thumbnail(url=ctx.author.avatar.url)
+                    #embed.set_thumbnail(url=ctx.author.display_avatar.url)
                     #await channel.send(embed=embed)
                 #elif check_steam_games(steamlink) is False:
                     #await ctx.send("Verification failed! Make sure you have your games set to be publicly visible")
                     #embed = discord.Embed(title = "`?steamverify` command failed!",color=discord.Color.red())
                     #embed.add_field(name="User",value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
                     #embed.add_field(name="ID",value=ctx.author.id,inline=False)
-                    #embed.set_thumbnail(url=ctx.author.avatar.url)
+                    #embed.set_thumbnail(url=ctx.author.display_avatar.url)
                     #await channel.send(embed=embed)
             #else:
                 #await ctx.send("This is not Steam link!")
