@@ -306,7 +306,7 @@ async def purge(ctx,number):
     channel = bot.get_channel(pmam_channelid_logs)
     try:
         number = int(number)
-        os.remove("./deleted.txt")
+        if os.path.exists("./deleted.txt"): os.remove("./deleted.txt")
         with open ("./deleted.txt", "w") as f:
             list = []
             async for i in ctx.history(limit=(number+1)):
@@ -318,9 +318,9 @@ async def purge(ctx,number):
                else:
                    f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
-        await ctx.channel.purge(limit=number+1,check = important_message)
-        await ctx.send(f"Purged `{number}` messages!",delete_after = 0.9)
-        await channel.send(file = discord.File("./deleted.txt"))
+        await ctx.channel.purge(limit=number+1, check=important_message)
+        await ctx.send(f"Purged `{number}` messages!", delete_after=2)
+        await channel.send(file=discord.File("./deleted.txt"))
     except Exception as e:
         log(e, 2)
         await ctx.send("Please provide a number!")
