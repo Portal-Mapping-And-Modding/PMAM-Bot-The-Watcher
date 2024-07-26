@@ -4,7 +4,6 @@ from discord.ext import commands, tasks
 from itertools import cycle
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
 import os, datetime, requests, asyncio, traceback
-#from bs4 import BeautifulSoup
 
 from logger import setup_logging, log
 
