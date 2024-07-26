@@ -10,7 +10,7 @@ from logger import setup_logging, log
 
 token: str = os.getenv('TOKEN')
 pmam_guildid: int = 830239808596606976
-test_guildid: int = 845791759984230430
+test_guildid: int = 845791759984230430 #! REWORK FOR BOT TO BE ABLE TO BE PROPERLY TESTED
 pmam_channelid_logs: int = 882296490314321961
 pmam_channelid_modmail: int = 1265721193885863936
 pmam_channelid_modbots: int = 830243685135941652
@@ -27,6 +27,7 @@ class PMAMBot(commands.Bot):
                  intents: discord.Intents
                  ):
         super().__init__(command_prefix=command_prefix, description=description, intents=intents)
+        self.bot.dm_cooldown = {}
 
     # Task to restart the bot so the sh script can backup the database
     time = datetime.time(hour=00, tzinfo=tz)
@@ -41,7 +42,6 @@ class PMAMBot(commands.Bot):
         
         # Load extension modules
         await self.load_extension('pmam_extension')
-        #bot.load_extension('pmam_extension2')
         await self.load_extension('levels')
         
         # Sync application/hybrid commands with the PMAM Discord server
@@ -203,7 +203,7 @@ async def on_member_remove(member):
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
 
-@bot.event
+@bot.event #! REWORK
 async def on_message_delete(message):
     if message.author.bot and message.guild.id != pmam_guildid:
         return
@@ -244,6 +244,25 @@ async def on_message_edit(before, after):
     embed.add_field(name="After", value=after.content, inline=False)
     embed.set_footer(text=f"User ID: {before.author.id}")
     await channel.send(embed=embed)
+
+@bot.event
+async def on_message(message):
+    if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guildid).get_member(message.author.id) == None):
+        return
+
+    if message.author.id in bot.dm_cooldown.keys() and bot.dm_cooldown[message.author.id] > datetime.datetime.now().second:
+        await message.channel.send(f"DM messaging is on cooldown for 15 seconds!")
+
+    if bot.dm_cooldown.get(message.author.id): bot.dm_cooldown.pop(message.author.id)
+    channel = bot.get_channel(pmam_channelid_modmail)
+    embed = discord.Embed(color=0xff470f)
+    embed.set_author(name=f"Author: {message.author.display_name}")
+    embed.set_footer(text=f"User ID: {message.author.id}")
+    embed.set_thumbnail(url=(message.author.display_avatar.url))
+    embed.add_field(name="Message:", value=message.content, inline=False)
+    
+    bot.dm_cooldown[message.author.id] = datetime.datetime.now().second + 15
+    await channel.send(embed=embed)    
 
 @bot.command(aliases = ['id_check','check_id'])
 @commands.has_permissions(ban_members=True)
@@ -298,8 +317,7 @@ async def ban(ctx, user):
 def important_message(message):
     return ("instructions on how to verify" not in message.content)
 
-
-@bot.command()
+@bot.command() #! REWORK
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
 async def purge(ctx,number):
@@ -601,6 +619,19 @@ async def restart(ctx: commands.Context):
     log("Manually restarting the bot!", 1)
     await ctx.send("Restarting, good bye!")
     await bot.close()
+
+@bot.command()
+@commands.bot_has_role(pmam_roleid_robot)
+@commands.has_permissions(ban_members=True)
+async def reply(ctx: commands.Context, userid: discord.Member, message: str):
+    """Anomalously replies to a select user.
+
+    Args:
+        ctx (commands.Context): Command context.
+        userid (discord.Member): The Member/User to target.
+    """
+    reply_user = await bot.get_user(userid)
+    await bot.send_message(reply_user, "Hello!")
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
