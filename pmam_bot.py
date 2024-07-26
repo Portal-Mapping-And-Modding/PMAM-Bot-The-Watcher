@@ -1,13 +1,10 @@
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
-import os
-#from bs4 import BeautifulSoup
-import datetime
-import requests
 from itertools import cycle
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
-import asyncio
+import os, datetime, requests, asyncio, traceback
+#from bs4 import BeautifulSoup
 
 from logger import setup_logging, log
 
@@ -16,14 +13,10 @@ pmam_guildid: int = 830239808596606976
 test_guildid: int = 845791759984230430
 pmam_channelid_logs: int = 882296490314321961
 pmam_channelid_modmail: int = 1265721193885863936
+pmam_channelid_modbots: int = 830243685135941652
 test_channelid_modmail: int = 845791759984230433
 pmam_roleid_robot: int = 830240292183212042
 tz = datetime.datetime.now().astimezone().tzinfo
-
-intents = discord.Intents.default()
-intents.members = True
-intents.presences = True
-intents.message_content = True
 
 class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
@@ -42,9 +35,9 @@ class PMAMBot(commands.Bot):
     # Task to restart the bot so the sh script can backup the database
     time = datetime.time(hour=00, tzinfo=tz)
     @tasks.loop(time=time)
-    async def restart():
+    async def restart(self):
         log("Restarting and backing up bot!", 1)
-        await bot.close()
+        await self.close()
 
     # Runs when the bot is being setup
     async def setup_hook(self):
@@ -91,10 +84,50 @@ class PMAMBot(commands.Bot):
     async def on_connect(self):
         log("The bot has connected to Discord!")
     
-    # async def on_command_error(self, ctx, error):
-    #     log(ctx, 2)
-    #     log(error, 2)
+    # Called when any non-caught errors occur with any commands
+    async def on_command_error(self, ctx: commands.Context, exception):
+        if isinstance(exception, discord.ext.commands.errors.CommandNotFound):
+            return
 
+        log(
+            f'\nAn error relating to bot commands occurred!'\
+            f'\nEvent details: {exception}'\
+            f'\nCheck the latest log for the full traceback...',
+            log_level=2
+        )
+        log("Check the latest log for the full traceback...", 2)
+        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
+
+        # Notify mods and admins the bot did not work correctly
+        await self.get_channel(pmam_channelid_modbots).send(
+            f'\nAn error relating to bot commands occurred!'\
+            f'\nEvent details: {exception}'\
+            f'\nCheck the latest log for the full traceback...'
+        )
+
+    # Called when there are any non-caught errors that occur
+    async def on_error(self, event):
+        log(
+            f'\nAn error occurred with the bot!'\
+            f'\nEvent details: {event}'\
+            f'\nCheck the latest log for the full traceback...',
+            log_level=2
+        )
+        log("Check the latest log for the full traceback...", 2)
+        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
+
+        # Notify mods and admins the bot did not work correctly
+        await self.get_channel(pmam_channelid_modbots).send(
+            f'\nAn error occurred with the bot!'\
+            f'\nEvent details: {event}'\
+            f'\nCheck the latest log for the full traceback...'
+        )
+        log(traceback.format_exc())
+
+intents = discord.Intents.default()
+intents.members = True
+intents.presences = True
+intents.message_content = True
 bot = PMAMBot(intents = discord.Intents.all())
 
 def check_steam_games(link):
