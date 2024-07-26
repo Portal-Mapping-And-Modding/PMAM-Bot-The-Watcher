@@ -3,7 +3,8 @@ from logging import handlers
 import os
 import colorama
 import datetime
-from cysystemd import journal
+if os.name != "nt":
+    from cysystemd import journal
 
 formatted_time = datetime.datetime.now(datetime.datetime.now().astimezone().tzinfo).strftime("%d-%m-%Y %H:%M:%S")
 
@@ -32,7 +33,8 @@ def setup_logging(base_path: str) -> None:
     )
     handler.setFormatter(logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%d-%m-%Y %H:%M:%S", style="{"))
     logger.addHandler(handler)
-    logger.addHandler(journal.JournaldLogHandler())
+    if os.name != "nt":
+        logger.addHandler(journal.JournaldLogHandler())
 
 # A log function to both log to the log file and print to the console, printing to the console can be optional
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
@@ -40,7 +42,7 @@ def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     Printing to console can be optional. Defaults to INFO logging with console set to True.
 
     Args:
-        msg (str): Message to be logged and printed to console. Message will be colored depending on level.
+        msg (str, optional): Message to be logged and printed to console. Message will be colored depending on level. Defaults to "".
         log_level (int, optional):
             Level to log the message:
                 0 = INFO (White)
@@ -65,5 +67,5 @@ def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
         return
 
     if console:
-        print(colorama.Fore.WHITE + f'[{formatted_time}] INFO: {msg}')
+        print(f'[{formatted_time}] INFO: {msg}')
     logging.info(msg)
