@@ -21,16 +21,12 @@ tz = datetime.datetime.now().astimezone().tzinfo
 class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
     # its prefix can be changed after configs are setup in bot_initialization
-    def __init__(self, *, 
-            command_prefix: str = "?",
-            help_command = None,
-            description: str = "",
-            intents: discord.Intents):
-        super().__init__(
-            command_prefix=command_prefix,
-            help_command=help_command,
-            description=description,
-            intents=intents)
+    def __init__(self, *,
+                 command_prefix: str = "?",
+                 description: str = "The Portal Mapping and Modding Discord server's bot, The Watcher!",
+                 intents: discord.Intents
+                 ):
+        super().__init__(command_prefix=command_prefix, description=description, intents=intents)
 
     # Task to restart the bot so the sh script can backup the database
     time = datetime.time(hour=00, tzinfo=tz)
@@ -58,6 +54,8 @@ class PMAMBot(commands.Bot):
             log("This is mostly likely because this is the test bot so please ignore.", 1)
             log(e, 1)
 
+        self.restart.start()
+
         log("Finished setting up bot hook...")
 
     # Runs when the bot has finished running through setup_hook
@@ -73,7 +71,7 @@ class PMAMBot(commands.Bot):
                 name="Hammer Crash For The Millonth Time :("
             )
         )
-        self.restart.start()
+        
         log("Alive and connected!")
         log(f'Logged on as {self.user}!')
         log("----------------------------")
@@ -189,7 +187,6 @@ async def on_member_join(member):
     embed.add_field(name="ID",value=member.id,inline=False)
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
-
 
 @bot.event
 async def on_member_remove(member):
@@ -334,24 +331,25 @@ async def verify(ctx):
     channel = bot.get_channel(pmam_channelid_logs)
     with open("./locked_ids.txt","r") as f:
         banned_ids = f.read()
-    if age.days > 450:
-        role = discord.utils.get(ctx.author.guild.roles, id = 894351178702397520)
         if str(ctx.author.id) in banned_ids:
             await ctx.send("The moderator team has blocked you from using the verification commands! Please ping an online mod to sort thing out.")
+        f.close()
+            
+    if age.days > 450:
+        role = discord.utils.get(ctx.author.guild.roles, id = 894351178702397520)
+        if role in ctx.author.roles:
+            await ctx.send('You are already verified!')
         else:
-            if role in ctx.author.roles:
-                await ctx.send('You are already verified!')
-            else:
-                await ctx.send("Verification successful!")
-                await asyncio.sleep(0.9)
-                await ctx.author.add_roles(role)
-                await asyncio.sleep(0.9)
-                await ctx.channel.purge(limit = 2)
+            await ctx.send("Verification successful!")
+            await asyncio.sleep(1)
+            await ctx.author.add_roles(role)
+            await asyncio.sleep(1)
+            await ctx.channel.purge(limit = 2)
     else:
         await ctx.send("Since your account is rather new you will need to connect your Steam account and then ping any online moderator.")
-        embed = discord.Embed(title = "`?verify` command failed!",color=discord.Color.red())
-        embed.add_field(name="User",value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
-        embed.add_field(name="ID",value=ctx.author.id,inline=False)
+        embed = discord.Embed(title = "`?verify` command failed!", color=discord.Color.red())
+        embed.add_field(name="User", value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
+        embed.add_field(name="ID", value=ctx.author.id, inline=False)
         embed.set_thumbnail(url=ctx.author.avatar.url)
         await channel.send(embed=embed)
 
