@@ -85,14 +85,16 @@ class PMAMBot(commands.Bot):
     async def on_command_error(self, ctx: commands.Context, exception):
         if isinstance(exception, discord.ext.commands.errors.CommandNotFound):
             return
-
+        if isinstance(exception, discord.ext.commands.errors.MissingRequiredArgument):
+            await ctx.send(f"You're missing the `{str(exception).split()[0]}` parameter of this command.")
+            return
+        
         log(
             f'\nAn error relating to bot commands occurred!'\
             f'\nEvent details: {exception}'\
             f'\nCheck the latest log for the full traceback...',
             log_level=2
         )
-        log("Check the latest log for the full traceback...", 2)
         log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
@@ -103,14 +105,13 @@ class PMAMBot(commands.Bot):
         )
 
     # Called when there are any non-caught errors that occur
-    async def on_error(self, event):
+    async def on_error(self, event, args = None, kwargs = None):
         log(
             f'\nAn error occurred with the bot!'\
             f'\nEvent details: {event}'\
             f'\nCheck the latest log for the full traceback...',
             log_level=2
         )
-        log("Check the latest log for the full traceback...", 2)
         log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
@@ -119,7 +120,6 @@ class PMAMBot(commands.Bot):
             f'\nEvent details: {event}'\
             f'\nCheck the latest log for the full traceback...'
         )
-        log(traceback.format_exc())
 
 intents = discord.Intents.default()
 intents.members = True
@@ -232,6 +232,7 @@ async def on_message_edit(before, after):
 @bot.event
 async def on_message(message):
     if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guildid).get_member(message.author.id) == None):
+        await bot.process_commands(message)
         return
 
     if message.author.id in bot.dm_cooldown.keys() and bot.dm_cooldown[message.author.id] > datetime.datetime.now().second:
@@ -607,15 +608,15 @@ async def restart(ctx: commands.Context):
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 @commands.has_permissions(ban_members=True)
-async def reply(ctx: commands.Context, userid: discord.Member, message: str):
-    """Anomalously replies to a select user.
+async def reply(ctx: commands.Context, user: discord.Member, message: str):
+    """Anomalously sends a DM to a select user.
 
     Args:
         ctx (commands.Context): Command context.
         userid (discord.Member): The Member/User to target.
     """
-    reply_user = await bot.get_user(userid)
-    await bot.send_message(reply_user, "Hello!")
+    
+    await bot.get_user(user.id).send(message)
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
