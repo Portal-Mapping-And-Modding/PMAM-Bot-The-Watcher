@@ -612,7 +612,7 @@ async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
         userid (discord.Member): The Member/User to target.
     """
     
-    await bot.get_user(user.id).send(message)
+    await bot.get_user(user.id).send(f"The following message was send by one of the PMaM mods/admins:\n\n {message}")
     await ctx.send(f"DM has been sent to {user.name}!", ephemeral=True)
 
 setup_logging(os.getcwd())
