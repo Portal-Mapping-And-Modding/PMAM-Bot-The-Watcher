@@ -59,7 +59,6 @@ class PMAMBot(commands.Bot):
 
     # Runs when the bot has finished running through setup_hook
     async def on_ready(self):
-        #special_role.start()
         log("Almost ready...")
         log("Setting the bot's Discord presence...")
         # According to the API documentation change_presence can cause problems doing it here, https://discordpy.readthedocs.io/en/latest/faq.html#how-do-i-set-the-playing-status
@@ -237,6 +236,7 @@ async def on_message(message):
 
     if message.author.id in bot.dm_cooldown.keys() and bot.dm_cooldown[message.author.id] > datetime.datetime.now().second:
         await message.channel.send(f"DM messaging is on cooldown for 15 seconds!")
+        return
 
     if bot.dm_cooldown.get(message.author.id): bot.dm_cooldown.pop(message.author.id)
     channel = bot.get_channel(pmam_channelid_modmail)
@@ -601,10 +601,10 @@ async def restart(ctx: commands.Context):
     await ctx.send("Restarting, good bye!")
     await bot.close()
 
-@bot.command()
+@bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
 @commands.has_permissions(ban_members=True)
-async def reply(ctx: commands.Context, user: discord.Member, message: str):
+async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
     """Anomalously sends a DM to a select user.
 
     Args:
