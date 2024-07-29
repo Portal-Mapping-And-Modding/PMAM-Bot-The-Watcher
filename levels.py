@@ -90,13 +90,14 @@ class leveling_system(commands.Cog):
             self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now())
         
         if self.cooldowns[message.author.id] < datetime.datetime.timestamp(datetime.datetime.now()):
-            if (message.author.id == int(os.getenv('THE_ID'))):
-                if len(message.content.split()) > 20:
-                    add_exp(message.author.id, round(0.2), 1)
-                else:
-                    add_exp(message.author.id, round(0.1, 1))
-                self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 50 #50 seconds cooldown
-                return
+            #! Reuse this function for future EXP timeout
+            # if (message.author.id == int(os.getenv('THE_ID'))):
+            #     if len(message.content.split()) > 20:
+            #         add_exp(message.author.id, round(0.2), 1)
+            #     else:
+            #         add_exp(message.author.id, round(0.1, 1))
+            #     self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 50 #50 seconds cooldown
+            #     return
 
             if len(message.content.split()) > 20:
                 add_exp(message.author.id, 2)
