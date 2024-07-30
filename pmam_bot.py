@@ -605,10 +605,9 @@ async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
         ctx (commands.Context): Command context.
         userid (discord.Member): The Member/User to target.
     """
-    
-    if bot.get_user(user.id) == None:
-        await ctx.send(f"Could not find user {user}!", delete_after=2)
-        return
+
+    await bot.get_user(user.id).send(f"From the PMAM Moderation Team:\n\n {message}")
+    await ctx.send(f"DM has been sent to {user.name}!", ephemeral=True)
 
 
 setup_logging(os.getcwd())
