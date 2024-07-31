@@ -1,7 +1,5 @@
 import discord
-from discord import app_commands
 from discord.ext import commands, tasks
-from itertools import cycle
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
 import os, datetime, requests, asyncio, traceback
 
@@ -15,7 +13,7 @@ pmam_channelid_modmail: int = 1265721193885863936
 pmam_channelid_modbots: int = 830243685135941652
 test_channelid_modmail: int = 845791759984230433
 pmam_roleid_robot: int = 830240292183212042
-tz = datetime.datetime.now().astimezone().tzinfo
+tz = datetime.datetime.now().astimezone().tzinfo # Current timezone on the system the bot is running on
 
 class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
@@ -23,10 +21,10 @@ class PMAMBot(commands.Bot):
     def __init__(self, *,
                  command_prefix: str = "?",
                  description: str = "The Portal Mapping and Modding Discord server's bot, The Watcher!",
-                 intents: discord.Intents
+                 intents: discord.Intents = discord.Intents.all()
                  ):
         super().__init__(command_prefix=command_prefix, description=description, intents=intents)
-        self.dm_cooldown = {}
+        self.dm_cooldown = {} # List of users on the cooldown for modmail DMs
 
     # Task to restart the bot so the sh script can backup the database
     time = datetime.time(hour=00, tzinfo=tz)
@@ -66,7 +64,7 @@ class PMAMBot(commands.Bot):
         await self.change_presence( 
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name="Hammer Crash For The Millonth Time :("
+                name="Hammer Crash For The Millionth Time :("
             )
         )
         
@@ -80,51 +78,60 @@ class PMAMBot(commands.Bot):
     async def on_connect(self):
         log("The bot has connected to Discord!")
     
-    # Called when any non-caught errors occur with any commands
+    # Called when any non-caught command errors occur
     async def on_command_error(self, ctx: commands.Context, exception):
-        if isinstance(exception, discord.ext.commands.errors.CommandNotFound):
+        # Below instance checks are to handle common errors with all commands
+        if isinstance(exception, commands.CommandNotFound):
             return
-        if isinstance(exception, discord.ext.commands.errors.MissingRequiredArgument):
-            await ctx.send(f"You're missing the `{str(exception).split()[0]}` parameter of this command.", delete_after=2)
+        elif isinstance(exception, commands.MissingRequiredArgument):
+            await ctx.send(f"You're missing the `{exception.param}` parameter of this command.", delete_after=3)
             return
+        elif isinstance(exception, commands.MissingPermissions) or isinstance(exception, commands.MissingAnyRole):
+            await ctx.send(f"You do not have permission to run this command.", delete_after=3)
+            return
+        elif isinstance(exception, commands.CommandOnCooldown):
+            await ctx.send(f"This command is on cooldown for `{exception.retry_after}` seconds. Please try again later.", delete_after=3)
+            return
+        else:
+            await ctx.send(f"A error occurred with this command!", delete_after=3)
         
         log(
-            f'\nAn error relating to bot commands occurred!'\
-            f'\nEvent details: {exception}'\
-            f'\nCheck the latest log for the full traceback...',
+            '\nAn error relating to bot commands occurred!'\
+            f'\nError details: {exception}'\
+            f'\nCommand issued: {ctx.command.name}'\
+            f'\nCommand issued by: {ctx.author.name}'\
+            '\nCheck the latest log for the full traceback...',
             log_level=2
         )
         log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
         await self.get_channel(pmam_channelid_modbots).send(
-            f'\nAn error relating to bot commands occurred!'\
-            f'\nEvent details: {exception}'\
-            f'\nCheck the latest log for the full traceback...'
+            '\nAn error relating to bot commands occurred!'\
+            f'\nError details: {exception}'\
+            f'\nCommand issued: {ctx.command.name}'\
+            f'\nCommand issued by: {ctx.author.name}'\
+            '\nCheck the latest log for the full traceback...',
         )
 
     # Called when there are any non-caught errors that occur
-    async def on_error(self, event, args = None, kwargs = None):
+    async def on_error(self, event, *, args = None, kwargs = None):
         log(
-            f'\nAn error occurred with the bot!'\
-            f'\nEvent details: {event}'\
-            f'\nCheck the latest log for the full traceback...',
+            '\nAn error occurred with the bot!'\
+            f'\nError details: {event}'\
+            '\nCheck the latest log for the full traceback...',
             log_level=2
         )
         log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
         await self.get_channel(pmam_channelid_modbots).send(
-            f'\nAn error occurred with the bot!'\
-            f'\nEvent details: {event}'\
-            f'\nCheck the latest log for the full traceback...'
+            '\nAn error occurred with the bot!'\
+            f'\nError details: {event}'\
+            '\nCheck the latest log for the full traceback...'
         )
 
-intents = discord.Intents.default()
-intents.members = True
-intents.presences = True
-intents.message_content = True
-bot = PMAMBot(intents = discord.Intents.all())
+bot = PMAMBot()
 
 def check_steam_games(link):
     link = f'{link}/games/?tab=all'
@@ -140,7 +147,7 @@ def check_steam_games(link):
 
 
 @bot.event
-async def on_member_update(member_before, member_after):
+async def on_member_update(member_before: discord.Message, member_after: discord.Message):
     if member_before.roles == member_after.roles:
         return
     
@@ -157,7 +164,7 @@ async def on_member_update(member_before, member_after):
     await channel.send(embed=embed)
 
 @bot.event
-async def on_member_join(member):
+async def on_member_join(member: discord.Member):
     if member.guild.id != pmam_guildid:
         return
 
@@ -172,7 +179,7 @@ async def on_member_join(member):
     await channel.send(embed=embed)
 
 @bot.event
-async def on_member_remove(member):
+async def on_member_remove(member: discord.Member):
     if member.guild.id != pmam_guildid:
         return
 
@@ -187,7 +194,7 @@ async def on_member_remove(member):
     await channel.send(embed=embed)
 
 @bot.event #! REWORK
-async def on_message_delete(message):
+async def on_message_delete(message: discord.Message):
     if message.author.bot and message.guild.id != pmam_guildid:
         return
     
@@ -213,7 +220,7 @@ async def on_message_delete(message):
             await channel.send(file=discord.File("image.png"), embed=image_embed)
 
 @bot.event
-async def on_message_edit(before, after):    
+async def on_message_edit(before: discord.Message, after: discord.Message):    
     if (before.author.bot) or (before.guild.id != pmam_guildid) or (before.content == after.content):
         return
     
@@ -229,7 +236,7 @@ async def on_message_edit(before, after):
     await channel.send(embed=embed)
 
 @bot.event
-async def on_message(message):
+async def on_message(message: discord.Message):
     if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guildid).get_member(message.author.id) == None):
         await bot.process_commands(message)
         return
@@ -252,53 +259,43 @@ async def on_message(message):
 @bot.command(aliases = ['id_check','check_id'])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def _id_check(ctx, id = None):
-    if id is None:
-        id = ctx.author.id
-        user = await bot.fetch_user(int(id))
-    else:    
-        try:
-            user = await bot.fetch_user(int(id))
-        except Exception:
-            await ctx.send("An error has occured!")
+async def _id_check(ctx: discord.Context, user: discord.Member = None):
+    if (ctx.guild.fetch_member(user.id) and user) == None:
+        await ctx.send("Invalid ID/user!", delete_after=3)
+        return
     
-    time = datetime.datetime.now(datetime.timezone.utc)
+    time = datetime.datetime.now(tz=tz)
     account_time = user.created_at
     age = time - account_time
     if age.total_seconds() < 259200:
-        embed = discord.Embed(title = "Account is less than 3 days old!",color=discord.Color.red())
-        embed.add_field(name="User",value=f"{user.display_name}#{user.discriminator}", inline=False)
-        embed.add_field(name="ID",value=user.id,inline=False)
-        embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
-        await ctx.send(embed=embed)
+        embed = discord.Embed(title="Account is less than 3 days old!", color=discord.Color.red())
+        embed.add_field(name="User", value=f"{user.display_name}#{user.discriminator}", inline=False)
+        embed.add_field(name="ID", value=user.id, inline=False)
+        embed.add_field(name="Created at: ", value=f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     else:
-        embed = discord.Embed(title = "Account is more than 3 days old!",color=discord.Color.green())
-        embed.add_field(name="User",value=f"{user.display_name}#{user.discriminator}", inline=False)
-        embed.add_field(name="ID",value=user.id,inline=False)
-        embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
-        await ctx.send(embed=embed)
+        embed = discord.Embed(title="Account is more than 3 days old!", color=discord.Color.green())
+        embed.add_field(name="User", value=f"{user.display_name}#{user.discriminator}", inline=False)
+        embed.add_field(name="ID", value=user.id,inline=False)
+        embed.add_field(name="Created at: ", value=f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
+    
+    await ctx.send(embed=embed)
 
 @bot.hybrid_command()
-async def membercount(ctx):
-    embed = discord.Embed(color=0x307dd4,timestamp=datetime.datetime.now())
-    embed.add_field(name="Members",value=ctx.guild.member_count)
+async def membercount(ctx: discord.Context):
+    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=tz))
+    embed.add_field(name="Members", value=ctx.guild.member_count)
     await ctx.send(embed=embed)
 
 @bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def ban(ctx, user):
-    try:
-        if user.startswith("<"):
-            user = await bot.fetch_user(int(user[2:-1]))
-        else:
-            user = await bot.fetch_user(user)
-        await ctx.guild.ban(user)
-        embed = discord.Embed(color=discord.Color.green(),description = f"<:vote_yes:975946668379889684> ***{user.display_name}#{user.discriminator} was banned***")
-        await ctx.send(embed = embed)
-    except:
-        embed = discord.Embed(color=discord.Color.red(),description = "<:vote_no:975946731202183230> ***Invalid ID/user!***")
-        await ctx.send(embed = embed)
+async def ban(ctx: discord.Context, user: discord.Member):
+    if ctx.guild.fetch_member(user.id) == None:
+        await ctx.send(embed=discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***"))
+        return
+    
+    await ctx.guild.ban(user.id)
+    await ctx.send(embed=discord.Embed(color=discord.Color.green(), description=f"<:vote_yes:975946668379889684> ***{user.display_name}#{user.discriminator} was banned***"))
 
 def important_message(message):
     return ("instructions on how to verify" not in message.content)
@@ -324,37 +321,37 @@ async def purge(ctx: commands.Context, number: int):
     await ctx.send(f"Purged `{number}` messages!", ephemeral=True)
     await channel.send(file=discord.File("./deleted.txt"))
 
-
 @bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def verify(ctx):
-    time = datetime.datetime.now(datetime.timezone.utc)
+async def verify(ctx: discord.Context):
+    time = datetime.datetime.now(tz=tz)
     account_time = ctx.author.created_at
     age = time - account_time
     channel = bot.get_channel(pmam_channelid_logs)
-    with open("./locked_ids.txt","r") as f:
+    with open("./locked_ids.txt", "r") as f:
         banned_ids = f.read()
         if str(ctx.author.id) in banned_ids:
-            await ctx.send("The moderator team has blocked you from using the verification commands! Please ping an online mod to sort thing out.")
+            await ctx.send("The moderator team has blocked you from using the verification command! Please ping an online mod/admin to sort things out.", delete_after=5)
+            f.close()
+            return
         f.close()
             
     if age.days > 450:
-        role = discord.utils.get(ctx.author.guild.roles, id = 894351178702397520)
+        role = discord.utils.get(ctx.author.guild.roles, id=894351178702397520)
         if role in ctx.author.roles:
-            await ctx.send('You are already verified!')
+            await ctx.send('You are already verified!', delete_after=2)
         else:
-            await ctx.send("Verification successful!")
-            await asyncio.sleep(1)
+            await ctx.send("Verification successful!", delete_after=2)
             await ctx.author.add_roles(role)
             await asyncio.sleep(1)
-            await ctx.channel.purge(limit = 2)
+            await ctx.channel.purge(limit=1)
     else:
-        await ctx.send("Since your account is rather new you will need to connect your Steam account and then ping any online moderator.")
         embed = discord.Embed(title = "`?verify` command failed!", color=discord.Color.red())
         embed.add_field(name="User", value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
         embed.add_field(name="ID", value=ctx.author.id, inline=False)
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
         await channel.send(embed=embed)
+        await ctx.send("Since your account is rather new you will need to connect your Steam account and then ping any online moderator.", delete_after=5)
 
 #@bot.command()
 #async def steamverify(ctx, steamlink = None):
@@ -392,14 +389,10 @@ async def verify(ctx):
 @bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def lockverify(ctx,user):
-    try:
-        if user.startswith("<"):
-            user = await bot.fetch_user(int(user[2:-1]))
-        else:
-            user = await bot.fetch_user(user)
-    except:
-        await ctx.send("Invalid ID/user!")
+async def lockverify(ctx: discord.Context, user: discord.Member):
+    if ctx.guild.fetch_member(user.id) == None:
+        await ctx.send("Invalid ID/user!", delete_after=3)
+        return
         
     with open("locked_ids.txt","r+") as f:
         if str(user.id) not in f.read():
@@ -407,9 +400,10 @@ async def lockverify(ctx,user):
             await ctx.send("User blocked from verification!")
         else:
             await ctx.send("This user is already blocked!")
+        f.close()
 
-@bot.command()
-async def search(ctx,*, word:str):
+@bot.hybrid_command()
+async def search(ctx: discord.Context, *, word: str):
     word = word.replace(" ","_")
     url = f"https://developer.valvesoftware.com/w/index.php?search={word}"
     r = requests.get(url,allow_redirects=False)
@@ -422,8 +416,8 @@ async def search(ctx,*, word:str):
     except KeyError:
         await ctx.send(f'This page might not exist, check it manually: {url}')
     
-@bot.command()
-async def mutual_friends(ctx, link1, link2):
+@bot.hybrid_command()
+async def mutual_friends(ctx: discord.Context, link1: str, link2: str):
     if "profiles" in link1: link1 = link1[36:]
     elif link1.endswith("/"):
         link1 = link1[:-1]
@@ -448,35 +442,36 @@ async def mutual_friends(ctx, link1, link2):
     except Exception as e:
         await ctx.send("An error occured!")
         log(e, 2)
+        raise e
 
 @bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def mass_id_check(ctx):
+async def mass_id_check(ctx: discord.Context):
     channel = bot.get_channel(pmam_channelid_logs)
-    em1 = discord.Embed(title = "`?mass_id_check` command used!",color=discord.Color.green())
+    em1 = discord.Embed(title = "`?mass_id_check` command used!", color=discord.Color.green())
     await channel.send(embed=em1)
     for i in bot.guilds[0].humans:
         if len(i.roles) == 1:
             time = datetime.datetime.now(datetime.timezone.utc)
             account_time = i.created_at
             age = time - account_time
-            embed = discord.Embed(title = f"{i.name}#{i.discriminator}",color=discord.Color.blue())
-            embed.add_field(name="ID",value=i.id,inline=False)
-            embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
-            await channel.send(embed = embed)
+            embed = discord.Embed(title = f"{i.name}#{i.discriminator}", color=discord.Color.blue())
+            embed.add_field(name="ID", value=i.id, inline=False)
+            embed.add_field(name="Created at: ", value=f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
+            await channel.send(embed=embed)
             
-@bot.command()
+@bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def selfroles(ctx):
+async def selfroles(ctx: discord.Context):
     value2 = []
     with open ("./selfroles.txt", "r") as f:
-        embed = discord.Embed(title = "Selfroles",color = discord.Color.dark_blue())
+        embed = discord.Embed(title="Selfroles", color=discord.Color.dark_blue())
         value = str(f.read()).split()
         log(value)
         for i in value:
             try:
-                value2.append(discord.utils.get(ctx.author.guild.roles, id = int(i)).name)
+                value2.append(discord.utils.get(ctx.author.guild.roles, id=int(i)).name)
             except Exception:
                 pass
         log(value2)
@@ -488,9 +483,9 @@ async def selfroles(ctx):
 @bot.command(aliases = ["selfrole_add","selfroles_add"])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def _selfrole_add(ctx,*,role_name:str):
+async def _selfrole_add(ctx: discord.Context, *, role_name: str):
     try:
-        role = discord.utils.get(ctx.guild.roles, name= role_name)
+        role = discord.utils.get(ctx.guild.roles, name=role_name)
         with open("selfroles.txt", "r+") as f:
             if str(role.id) not in f.read():
                 current = f.read()
@@ -507,7 +502,7 @@ async def _selfrole_add(ctx,*,role_name:str):
 @bot.command(aliases = ["selfrole_remove","selfroles_remove"])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def _selfrole_remove(ctx,*,role_name:str):
+async def _selfrole_remove(ctx: discord.Context, *, role_name: str):
     current = ""
     role_is_here = False
     try:
@@ -529,57 +524,56 @@ async def _selfrole_remove(ctx,*,role_name:str):
     except:
         await ctx.send(f"Couldn't find role with a name `{role_name}`")
         
-@bot.command()
+@bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def iam(ctx,*,role_name:str):
-    try:
-        role = discord.utils.get(ctx.guild.roles, name= role_name)
-        with open("selfroles.txt", "r") as f:
-            if str(role.id) in f.read():
-                if role not in ctx.author.roles:
-                    await ctx.author.add_roles(role)
-                    await ctx.send("Selfrole added!")
-                else:
-                    await ctx.send("You already have this role")
+async def iam(ctx: discord.Context, *, role_name: str):
+    if discord.utils.get(ctx.guild.roles, name=role_name) == None:
+        await ctx.send("Invalid role name!", delete_after=2)
+        return
+    
+    role = discord.utils.get(ctx.guild.roles, name=role_name)
+    with open("selfroles.txt", "r") as f:
+        if str(role.id) in f.read():
+            if role not in ctx.author.roles:
+                await ctx.author.add_roles(role)
+                await ctx.send("Selfrole added!")
             else:
-                await ctx.send("You can't get this role!")
-                
-    except:
-        await ctx.send("Invalid role name!")
+                await ctx.send("You already have this role")
+        else:
+            await ctx.send("You can't get this role!")
+        f.close()
 
-@bot.command()
+@bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def iamnot(ctx,*,role_name:str):
-    try:
-        role = discord.utils.get(ctx.guild.roles, name= role_name)
-        with open("selfroles.txt", "r") as f:
-            if str(role.id) in f.read():
-                if role in ctx.author.roles:
-                    await ctx.author.remove_roles(role)
-                    await ctx.send("Selfrole removed!")
-                else:
-                    await ctx.send("You don't have this role")
+async def iamnot(ctx: discord.Context, *, role_name: str):
+    if discord.utils.get(ctx.guild.roles, name=role_name) == None:
+        await ctx.send("Invalid role name!", delete_after=2)
+        return
+
+    role = discord.utils.get(ctx.guild.roles, name=role_name)
+    with open("selfroles.txt", "r") as f:
+        if str(role.id) in f.read():
+            if role in ctx.author.roles:
+                await ctx.author.remove_roles(role)
+                await ctx.send("Selfrole removed!")
             else:
-                await ctx.send("You can't remove this role!")
-                
-    except:
-        await ctx.send("Invalid role name!")
+                await ctx.send("You don't have this role")
+        else:
+            await ctx.send("You can't remove this role!")
+        f.close()
 
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 @commands.has_permissions(ban_members=True)
-async def chocolate(ctx, user):
-    try:
-        if user.startswith("<"):
-            user = await bot.fetch_user(int(user[2:-1]))
-        else:
-            user = await bot.fetch_user(user)
-    except:
-        await ctx.send("Invalid ID/user!")
+async def chocolate(ctx: discord.Context, user: discord.Member):
+    if ctx.guild.fetch_member(user.id) == None:
+        await ctx.send("Invalid ID/user!", delete_after=3)
         return
+    
     await ctx.send(f"{user.mention} has been given one chocolate bar :chocolate_bar:")
 
 @bot.hybrid_command()
+@commands.cooldown(1, 3)
 async def ping(ctx: commands.Context):
     """Pings the bot"""
 
@@ -611,9 +605,13 @@ async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
         ctx (commands.Context): Command context.
         userid (discord.Member): The Member/User to target.
     """
-    
+    if bot.get_user(user.id) == None:
+        await ctx.send(f"Could not find user {user}!", delete_after=2)
+        return
+      
     await bot.get_user(user.id).send(f"From the PMAM Moderation Team:\n\n {message}")
     await ctx.send(f"DM has been sent to {user.name}!", ephemeral=True)
+
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
