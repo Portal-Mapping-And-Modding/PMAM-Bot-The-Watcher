@@ -318,7 +318,7 @@ async def purge(ctx: commands.Context, number: int):
                 f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
     await ctx.channel.purge(limit=number+1, check=important_message)
-    await ctx.send(f"Purged `{number}` messages!", delete_after=2)
+    await ctx.send(f"Purged `{number}` messages!", ephemeral=True)
     await channel.send(file=discord.File("./deleted.txt"))
 
 @bot.hybrid_command()
@@ -605,7 +605,10 @@ async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
         ctx (commands.Context): Command context.
         userid (discord.Member): The Member/User to target.
     """
-
+    if bot.get_user(user.id) == None:
+        await ctx.send(f"Could not find user {user}!", delete_after=2)
+        return
+      
     await bot.get_user(user.id).send(f"From the PMAM Moderation Team:\n\n {message}")
     await ctx.send(f"DM has been sent to {user.name}!", ephemeral=True)
 
