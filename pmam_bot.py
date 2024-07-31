@@ -318,7 +318,7 @@ async def purge(ctx: commands.Context, number: int):
                 f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
     await ctx.channel.purge(limit=number+1, check=important_message)
-    await ctx.send(f"Purged `{number}` messages!", ephemeral=True)
+    await ctx.send(f"Purged `{number}` messages!", delete_after=2)
     await channel.send(file=discord.File("./deleted.txt"))
 
 @bot.hybrid_command()
