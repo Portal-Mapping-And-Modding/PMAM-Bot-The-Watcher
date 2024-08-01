@@ -104,7 +104,7 @@ class leveling_system(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_role(pmam_roleid_robot)
-    async def addexp(self, ctx: discord.Context, user: discord.Member, amount: int):
+    async def addexp(self, ctx: commands.Context, user: discord.Member, amount: int):
         if ctx.guild.fetch_member(user.id) == None:
             await ctx.send("Invalid ID/user!", delete_after=3)
             return
@@ -122,7 +122,7 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def exp(self, ctx: discord.Context, user: discord.Member = None):
+    async def exp(self, ctx: commands.Context, user: discord.Member = None):
         if (ctx.guild.fetch_member(user.id) and user) == None:
             embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***")
             await ctx.send(embed=embed)
@@ -149,41 +149,41 @@ class leveling_system(commands.Cog):
         connection.close()
 
         try:
-            #await ctx.send(f"user {user_obj} has {result[1]} EXP. Position: {rank}{user_obj.name}{user_obj.nick}{user_obj.display_name}")
+            #await ctx.send(f"user {user} has {result[1]} EXP. Position: {rank}{user.name}{user.nick}{user.display_name}")
 
             #yes I know this isn't great thing to do, but I want my code to be readable for future me/future The Watcher maintainer
             if result[1] < 100: #control group
-                if level_roles_ids[0] not in (user_roles_ids := [i.id for i in user_obj.roles]): 
+                if level_roles_ids[0] not in (user_roles_ids := [i.id for i in user.roles]): 
                     await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
                     await user.add_roles(ctx.guild.get_role(level_roles_ids[0]))
                 generate_card(user, "0", rank, result[1])
             
             elif result[1] < 1000: #test subject
-                if level_roles_ids[1] not in (user_roles_ids := [i.id for i in user_obj.roles]): #this if statement promotes user to next access level
+                if level_roles_ids[1] not in (user_roles_ids := [i.id for i in user.roles]): #this if statement promotes user to next access level
                     await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
                     await user.add_roles(ctx.guild.get_role(level_roles_ids[1]))
                 generate_card(user, "1", rank, result[1])
             
             elif result[1] < 5000: #testing bot
-                if level_roles_ids[2] not in (user_roles_ids := [i.id for i in user_obj.roles]):
+                if level_roles_ids[2] not in (user_roles_ids := [i.id for i in user.roles]):
                     await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids))) #removing "old" roles and adding role that corresponds to EXP level
                     await user.add_roles(ctx.guild.get_role(level_roles_ids[2]))
                 generate_card(user, "2", rank, result[1])
             
             elif result[1] < 10000: #military android
-                if level_roles_ids[3] not in (user_roles_ids := [i.id for i in user_obj.roles]):
+                if level_roles_ids[3] not in (user_roles_ids := [i.id for i in user.roles]):
                     await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
                     await user.add_roles(ctx.guild.get_role(level_roles_ids[3]))
                 generate_card(user, "3", rank, result[1])
             
             elif result[1] < 70000: #scientist
-                if level_roles_ids[4] not in (user_roles_ids := [i.id for i in user_obj.roles]):
+                if level_roles_ids[4] not in (user_roles_ids := [i.id for i in user.roles]):
                     await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
                     await user.add_roles(ctx.guild.get_role(level_roles_ids[4]))
                 generate_card(user, "4", rank, result[1])
             
             else: #no life user
-                if level_roles_ids[5] not in (user_roles_ids := [i.id for i in user_obj.roles]):
+                if level_roles_ids[5] not in (user_roles_ids := [i.id for i in user.roles]):
                     await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
                     await user.add_roles(ctx.guild.get_role(level_roles_ids[5]))
                 generate_card(user, "5", rank, result[1])
@@ -198,7 +198,7 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def leaderboard(self, ctx: discord.Context):
+    async def leaderboard(self, ctx: commands.Context):
         connection = sqlite3.connect("database.db")
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM users ORDER BY exp DESC")
@@ -208,8 +208,8 @@ class leveling_system(commands.Cog):
         base_embed = discord.Embed(title="PMaM Leaderboard", color=0xf9f02a)
         for i in cursor.fetchmany(10):
             try:
-                user_obj = await ctx.guild.fetch_member(i[0])
-                username = user_obj.global_name
+                user = await ctx.guild.fetch_member(i[0])
+                username = user.global_name
             except Exception:
                 username = str(i[0])
             base_embed.add_field(name=f"#{rank} {username}", value=f"{i[1]} EXP", inline=False)

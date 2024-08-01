@@ -259,7 +259,7 @@ async def on_message(message: discord.Message):
 @bot.command(aliases = ['id_check','check_id'])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def _id_check(ctx: discord.Context, user: discord.Member = None):
+async def _id_check(ctx: commands.Context, user: discord.Member = None):
     if (ctx.guild.fetch_member(user.id) and user) == None:
         await ctx.send("Invalid ID/user!", delete_after=3)
         return
@@ -281,7 +281,7 @@ async def _id_check(ctx: discord.Context, user: discord.Member = None):
     await ctx.send(embed=embed)
 
 @bot.hybrid_command()
-async def membercount(ctx: discord.Context):
+async def membercount(ctx: commands.Context):
     embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=tz))
     embed.add_field(name="Members", value=ctx.guild.member_count)
     await ctx.send(embed=embed)
@@ -289,7 +289,7 @@ async def membercount(ctx: discord.Context):
 @bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def ban(ctx: discord.Context, user: discord.Member):
+async def ban(ctx: commands.Context, user: discord.Member):
     if ctx.guild.fetch_member(user.id) == None:
         await ctx.send(embed=discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***"))
         return
@@ -318,12 +318,12 @@ async def purge(ctx: commands.Context, number: int):
                 f.write(f"[{str(i.created_at)[:-13]}] [{i.author.name}]: {i.content} [Attachments: {', '.join([x.url for x in i.attachments])}]\n")
 
     await ctx.channel.purge(limit=number+1, check=important_message)
-    await ctx.send(f"Purged `{number}` messages!", ephemeral=True)
+    await ctx.send(f"Purged `{number}` messages!", delete_after=2)
     await channel.send(file=discord.File("./deleted.txt"))
 
 @bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def verify(ctx: discord.Context):
+async def verify(ctx: commands.Context):
     time = datetime.datetime.now(tz=tz)
     account_time = ctx.author.created_at
     age = time - account_time
@@ -389,7 +389,7 @@ async def verify(ctx: discord.Context):
 @bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def lockverify(ctx: discord.Context, user: discord.Member):
+async def lockverify(ctx: commands.Context, user: discord.Member):
     if ctx.guild.fetch_member(user.id) == None:
         await ctx.send("Invalid ID/user!", delete_after=3)
         return
@@ -403,7 +403,7 @@ async def lockverify(ctx: discord.Context, user: discord.Member):
         f.close()
 
 @bot.hybrid_command()
-async def search(ctx: discord.Context, *, word: str):
+async def search(ctx: commands.Context, *, word: str):
     word = word.replace(" ","_")
     url = f"https://developer.valvesoftware.com/w/index.php?search={word}"
     r = requests.get(url,allow_redirects=False)
@@ -417,7 +417,7 @@ async def search(ctx: discord.Context, *, word: str):
         await ctx.send(f'This page might not exist, check it manually: {url}')
     
 @bot.hybrid_command()
-async def mutual_friends(ctx: discord.Context, link1: str, link2: str):
+async def mutual_friends(ctx: commands.Context, link1: str, link2: str):
     if "profiles" in link1: link1 = link1[36:]
     elif link1.endswith("/"):
         link1 = link1[:-1]
@@ -447,7 +447,7 @@ async def mutual_friends(ctx: discord.Context, link1: str, link2: str):
 @bot.command()
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def mass_id_check(ctx: discord.Context):
+async def mass_id_check(ctx: commands.Context):
     channel = bot.get_channel(pmam_channelid_logs)
     em1 = discord.Embed(title = "`?mass_id_check` command used!", color=discord.Color.green())
     await channel.send(embed=em1)
@@ -463,7 +463,7 @@ async def mass_id_check(ctx: discord.Context):
             
 @bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def selfroles(ctx: discord.Context):
+async def selfroles(ctx: commands.Context):
     value2 = []
     with open ("./selfroles.txt", "r") as f:
         embed = discord.Embed(title="Selfroles", color=discord.Color.dark_blue())
@@ -483,7 +483,7 @@ async def selfroles(ctx: discord.Context):
 @bot.command(aliases = ["selfrole_add","selfroles_add"])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def _selfrole_add(ctx: discord.Context, *, role_name: str):
+async def _selfrole_add(ctx: commands.Context, *, role_name: str):
     try:
         role = discord.utils.get(ctx.guild.roles, name=role_name)
         with open("selfroles.txt", "r+") as f:
@@ -502,7 +502,7 @@ async def _selfrole_add(ctx: discord.Context, *, role_name: str):
 @bot.command(aliases = ["selfrole_remove","selfroles_remove"])
 @commands.has_permissions(ban_members=True)
 @commands.bot_has_role(pmam_roleid_robot)
-async def _selfrole_remove(ctx: discord.Context, *, role_name: str):
+async def _selfrole_remove(ctx: commands.Context, *, role_name: str):
     current = ""
     role_is_here = False
     try:
@@ -526,7 +526,7 @@ async def _selfrole_remove(ctx: discord.Context, *, role_name: str):
         
 @bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def iam(ctx: discord.Context, *, role_name: str):
+async def iam(ctx: commands.Context, *, role_name: str):
     if discord.utils.get(ctx.guild.roles, name=role_name) == None:
         await ctx.send("Invalid role name!", delete_after=2)
         return
@@ -545,7 +545,7 @@ async def iam(ctx: discord.Context, *, role_name: str):
 
 @bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def iamnot(ctx: discord.Context, *, role_name: str):
+async def iamnot(ctx: commands.Context, *, role_name: str):
     if discord.utils.get(ctx.guild.roles, name=role_name) == None:
         await ctx.send("Invalid role name!", delete_after=2)
         return
@@ -565,7 +565,7 @@ async def iamnot(ctx: discord.Context, *, role_name: str):
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 @commands.has_permissions(ban_members=True)
-async def chocolate(ctx: discord.Context, user: discord.Member):
+async def chocolate(ctx: commands.Context, user: discord.Member):
     if ctx.guild.fetch_member(user.id) == None:
         await ctx.send("Invalid ID/user!", delete_after=3)
         return
