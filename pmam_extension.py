@@ -5,7 +5,7 @@ from discord.ext import commands
 
 pmam_roleid_robot: int = 830240292183212042
 
-class Test(commands.Cog):
+class Extension(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -37,4 +37,4 @@ class Test(commands.Cog):
                         await channel_starboard.send(f"Message by @{message.author.name} from <#{message.channel.id}>:\n\n```{message.content}```{' '.join([j.url for j in message.attachments])}\n\nOriginal message: {message.jump_url}")
 
 async def setup(bot):
-    await bot.add_cog(Test(bot))
+    await bot.add_cog(Extension(bot))

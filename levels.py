@@ -104,7 +104,7 @@ class leveling_system(commands.Cog):
     @commands.command()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_role(pmam_roleid_robot)
-    async def addexp(self, ctx: discord.Context, user: discord.Member, amount: int):
+    async def addexp(self, ctx: commands.Context, user: discord.Member, amount: int):
         if ctx.guild.fetch_member(user.id) == None:
             await ctx.send("Invalid ID/user!", delete_after=3)
             return
@@ -122,7 +122,7 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def exp(self, ctx: discord.Context, user: discord.Member = None):
+    async def exp(self, ctx: commands.Context, user: discord.Member = None):
         if (ctx.guild.fetch_member(user.id) and user) == None:
             embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***")
             await ctx.send(embed=embed)
@@ -198,7 +198,7 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def leaderboard(self, ctx: discord.Context):
+    async def leaderboard(self, ctx: commands.Context):
         connection = sqlite3.connect("database.db")
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM users ORDER BY exp DESC")
