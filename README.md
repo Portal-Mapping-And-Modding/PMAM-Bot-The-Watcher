@@ -7,3 +7,5 @@ The [discord.py](https://github.com/Rapptz/discord.py) bot used in the Portal Ma
 - The `main` branch contains the code set the bot runs on the Discord server.
 - The `stable` branch is a backup branch that contains the last stable code set for the bot. Used if `main` breaks.
 - The `dev` branch is the bot's development and testing branch. Any new changes go through here before going into `main`.
+
+This bot uses the [`GNU Affero General Public License v3.0 (GNU AGPL V3.0)`](https://choosealicense.com/licenses/agpl-3.0/#) License.
