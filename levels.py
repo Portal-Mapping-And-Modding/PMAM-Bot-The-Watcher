@@ -71,7 +71,6 @@ class leveling_system(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.cleanup.start()
         self.cooldowns = {} # EXP user cooldown list
 
     @commands.Cog.listener()
