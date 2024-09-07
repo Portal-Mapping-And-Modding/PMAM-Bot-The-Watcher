@@ -298,7 +298,7 @@ async def ban(ctx: commands.Context, user: discord.Member):
     await ctx.send(embed=discord.Embed(color=discord.Color.green(), description=f"<:vote_yes:975946668379889684> ***{user.display_name}#{user.discriminator} was banned***"))
 
 def important_message(message):
-    return ("instructions on how to verify" not in message.content)
+    return (1280835723460608000 != message.id)
 
 @bot.command() #! REWORK
 @commands.has_permissions(ban_members=True)
