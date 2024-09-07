@@ -301,7 +301,7 @@ async def ban(ctx, user):
         await ctx.send(embed = embed)
 
 def important_message(message):
-    return ("instructions on how to verify" not in message.content)
+    return (1280835723460608000 != message.id)
 
 @bot.command() #! REWORK
 @commands.has_permissions(ban_members=True)
