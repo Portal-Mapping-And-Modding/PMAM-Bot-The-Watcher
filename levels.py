@@ -222,8 +222,8 @@ class leveling_system(commands.Cog):
             rank = "you found super secret error!"
         
         connection.close()
-        base_embed.set_thumbnail(url="https://cdn.discordapp.com/icons/830239808596606976/a_f8ba2bc689224edbe81500225e8183a8.gif?size=1024") #pmam icon
-        base_embed.set_footer(text=f"Your position in ranking: {rank}", icon_url="https://cdn.discordapp.com/icons/830239808596606976/a_f8ba2bc689224edbe81500225e8183a8.gif?size=1024")
+        base_embed.set_thumbnail(url="https://media.discordapp.net/attachments/1120154927528951828/1280236388037693503/pamlogo.gif") #pmam icon
+        base_embed.set_footer(text=f"Your position in ranking: {rank}", icon_url="https://media.discordapp.net/attachments/1120154927528951828/1280236388037693503/pamlogo.gif")
         await ctx.send(embed=base_embed)
         
 async def setup(bot):
