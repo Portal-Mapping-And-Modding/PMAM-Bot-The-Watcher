@@ -14,6 +14,7 @@ pmam_channelid_logs: int = 882296490314321961
 pmam_channelid_modmail: int = 1265721193885863936
 pmam_channelid_modbots: int = 830243685135941652
 test_channelid_modmail: int = 845791759984230433
+pmam_messageid_verify: int = 1282465091480064112
 pmam_roleid_robot: int = 830240292183212042
 tz = datetime.datetime.now().astimezone().tzinfo
 
@@ -301,7 +302,7 @@ async def ban(ctx, user):
         await ctx.send(embed = embed)
 
 def important_message(message):
-    return (1280835723460608000 != message.id)
+    return (pmam_messageid_verify != message.id)
 
 @bot.command() #! REWORK
 @commands.has_permissions(ban_members=True)
