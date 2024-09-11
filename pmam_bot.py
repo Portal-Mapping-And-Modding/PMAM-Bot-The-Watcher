@@ -588,7 +588,7 @@ async def ping(ctx: commands.Context):
         title="Pong!",
         description=f'**Latency: {round((bot.latency * 1000), 2)} ms**',
         colour=discord.Colour.brand_green())
-    ping_thumbnail = discord.File(f"{os.getcwd() + os.sep}Images{os.sep}ping_pong.png", filename="ping_thumbnail.png")
+    ping_thumbnail = discord.File(f"{os.getcwd() + os.sep}images{os.sep}ping_pong.png", filename="ping_thumbnail.png")
     ping_embed.set_thumbnail(url="attachment://ping_thumbnail.png")
     await ctx.send(file=ping_thumbnail, embed=ping_embed)
 

@@ -122,16 +122,13 @@ class leveling_system(commands.Cog):
     
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
-    async def exp(self, ctx, user = None):
-        if user == None:
-            user = ctx.author.id
-        elif user.startswith("<"):
-            user = user[2:-1]
-        
-        try:
-            user = int(user)
-        except Exception:
-            embed = discord.Embed(color=discord.Color.red(),description = "<:vote_no:975946731202183230> ***Invalid ID/user!***")
+    @commands.cooldown(1, 5)
+    async def exp(self, ctx: commands.Context, user: discord.Member = None):
+        # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
+        ctx.defer()
+
+        if (ctx.guild.fetch_member(user.id) and user) == None:
+            embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***")
             await ctx.send(embed=embed)
             return
         
@@ -205,7 +202,11 @@ class leveling_system(commands.Cog):
 
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
-    async def leaderboard(self, ctx):
+    @commands.cooldown(1, 5)
+    async def leaderboard(self, ctx: commands.Context):
+        # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
+        ctx.defer()
+
         connection = sqlite3.connect("database.db")
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM users ORDER BY exp DESC")
@@ -229,8 +230,10 @@ class leveling_system(commands.Cog):
         except Exception:
             rank = "you found super secret error!"
         connection.close()
-        base_embed.set_thumbnail(url="https://media.discordapp.net/attachments/1120154927528951828/1280236388037693503/pamlogo.gif") #pmam icon
-        base_embed.set_footer(text=f"Your position in ranking: {rank}", icon_url="https://media.discordapp.net/attachments/1120154927528951828/1280236388037693503/pamlogo.gif")
+        
+        thumbnail = discord.File("images/pmamlogo.png", "pmamlogo.png") #pmam icon
+        base_embed.set_thumbnail(url="attachment://pmamlogo.png") 
+        base_embed.set_footer(file=thumbnail, text=f"Your position in ranking: {rank}", icon_url="attachment://pmamlogo.png")
         await ctx.send(embed=base_embed)
         
 async def setup(bot):
