@@ -231,8 +231,8 @@ class leveling_system(commands.Cog):
         
         thumbnail = discord.File("images/pmamlogo.png", "pmamlogo.png") #pmam icon
         base_embed.set_thumbnail(url="attachment://pmamlogo.png") 
-        base_embed.set_footer(file=thumbnail, text=f"Your position in ranking: {rank}", icon_url="attachment://pmamlogo.png")
-        await ctx.send(embed=base_embed)
+        base_embed.set_footer(text=f"Your position in ranking: {rank}", icon_url="attachment://pmamlogo.png")
+        await ctx.send(file=thumbnail, embed=base_embed)
         
 async def setup(bot):
     await bot.add_cog(leveling_system(bot))
