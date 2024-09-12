@@ -123,7 +123,7 @@ class leveling_system(commands.Cog):
     @commands.cooldown(1, 5)
     async def exp(self, ctx: commands.Context, user: discord.Member = None):
         # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
-        ctx.defer()
+        await ctx.defer()
 
         if (ctx.guild.fetch_member(user.id) and user) == None:
             embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***")
@@ -202,7 +202,7 @@ class leveling_system(commands.Cog):
     @commands.cooldown(1, 5)
     async def leaderboard(self, ctx: commands.Context):
         # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
-        ctx.defer()
+        await ctx.defer()
 
         connection = sqlite3.connect("database.db")
         cursor = connection.cursor()
