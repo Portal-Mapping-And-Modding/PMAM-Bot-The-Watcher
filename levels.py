@@ -121,7 +121,7 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def exp(self, ctx: commands.Context, user: typing.Union[discord.Member, int] = None):
+    async def exp(self, ctx: commands.Context, user = None):
         # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
         await ctx.defer()
 
