@@ -1,6 +1,6 @@
 from io import BytesIO
-import discord, sqlite3, requests, datetime, os
-from discord.ext import commands, tasks
+import discord, sqlite3, requests, datetime, typing
+from discord.ext import commands
 from PIL import Image, ImageFont, ImageDraw
 
 from logger import log
@@ -123,9 +123,12 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def exp(self, ctx: commands.Context, user: discord.Member = None):
+    async def exp(self, ctx: commands.Context, user: typing.Union[discord.Member, int] = None):
         # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
         await ctx.defer()
+
+        if not isinstance(user, discord.Member):
+            user = ctx.author
 
         if (ctx.guild.fetch_member(user.id) and user) == None:
             embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***")
