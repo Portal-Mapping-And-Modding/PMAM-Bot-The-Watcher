@@ -127,11 +127,15 @@ class leveling_system(commands.Cog):
         # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
         await ctx.defer()
 
-        if not isinstance(user, discord.Member):
-            user = ctx.author
-
-        if (ctx.guild.fetch_member(user.id) and user) == None:
-            embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Invalid ID/user!***")
+        if user == None:
+            user = ctx.author.id
+        elif user.startswith("<"):
+            user = user[2:-1]
+        
+        try:
+            user = int(user)
+        except Exception:
+            embed = discord.Embed(color=discord.Color.red(),description = "<:vote_no:975946731202183230> ***Invalid ID/user!***")
             await ctx.send(embed=embed)
             return
         
