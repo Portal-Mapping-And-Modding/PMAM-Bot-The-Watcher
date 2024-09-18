@@ -20,7 +20,7 @@ class Test(commands.Cog):
             await message.add_reaction("<:vote_no:975946731202183230>")
         if "https://steamcommunity.com/sharedfiles" in message.content and "steam://openurl/" not in message.content and message.channel.id in [922653836626243654,941813875538538627]:
             thread = await message.create_thread(name = f"{message.author.name}'s map")
-            await thread.send(f"Here is a link that will directly open Steam: {message.content.replace("https://steamcommunity.com/sharedfiles/filedetails/", "https://tpecool.github.io/steamitem/")}")
+            await thread.send(f"Here is a link that will directly open Steam: https://tpecool.github.io/steamitem/{message.content[message.content.find('https://steamcommunity.com/sharedfiles'):message.content.find('https://steamcommunity.com/sharedfiles')+65]}")
     @commands.Cog.listener()
     @commands.bot_has_role(pmam_roleid_robot) #only works for PMaM
     async def on_raw_reaction_add(self, ctx):
