@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
 import os, datetime, requests, asyncio, traceback
@@ -573,10 +574,12 @@ async def chocolate(ctx: commands.Context, user: discord.Member):
     
     await ctx.send(f"{user.mention} has been given one chocolate bar :chocolate_bar:")
 
-@bot.hybrid_command()
-@commands.cooldown(1, 3)
-async def ping(ctx: commands.Context):
+@bot.tree.command()
+@app_commands.describe("Pings the bot.")
+@app_commands.Cooldown(1, 3)
+async def ping(interaction: discord.Interaction):
     """Pings the bot"""
+    await interaction.response.defer(thinking=True)
 
     ping_embed = discord.Embed(
         title="Pong!",
@@ -584,7 +587,7 @@ async def ping(ctx: commands.Context):
         colour=discord.Colour.brand_green())
     ping_thumbnail = discord.File(f"{os.getcwd() + os.sep}images{os.sep}ping_pong.png", filename="ping_thumbnail.png")
     ping_embed.set_thumbnail(url="attachment://ping_thumbnail.png")
-    await ctx.send(file=ping_thumbnail, embed=ping_embed)
+    await interaction.followup.send(file=ping_thumbnail, embed=ping_embed)
 
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
