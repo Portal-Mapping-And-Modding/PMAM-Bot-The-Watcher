@@ -585,7 +585,7 @@ async def chocolate(ctx, user):
 
 @bot.tree.command()
 #@app_commands.describe("Pings the bot.")
-@app_commands.checks.Cooldown(1, 3)
+@app_commands.checks.cooldown(1, 3)
 async def ping(interaction: discord.Interaction):
     """Pings the bot"""
     await interaction.response.defer(thinking=True)
