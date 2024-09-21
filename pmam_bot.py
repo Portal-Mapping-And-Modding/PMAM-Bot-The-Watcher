@@ -584,7 +584,7 @@ async def chocolate(ctx, user):
     await ctx.send(f"{user.mention} has been given one chocolate bar :chocolate_bar:")
 
 @bot.tree.command()
-@app_commands.describe("Pings the bot.")
+#@app_commands.describe("Pings the bot.")
 @app_commands.checks.Cooldown(1, 3)
 async def ping(interaction: discord.Interaction):
     """Pings the bot"""
