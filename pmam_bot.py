@@ -102,10 +102,9 @@ class PMAMBot(commands.Bot):
             f'\nError details: {exception}'\
             f'\nCommand issued: {ctx.command.name}'\
             f'\nCommand issued by: {ctx.author.name}'\
-            '\nCheck the latest log for the full traceback...',
+            f'\nFull traceback:\n{traceback.format_exc()}',
             log_level=2
         )
-        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
         await self.get_channel(pmam_channelid_modbots).send(
@@ -113,7 +112,7 @@ class PMAMBot(commands.Bot):
             f'\nError details: {exception}'\
             f'\nCommand issued: {ctx.command.name}'\
             f'\nCommand issued by: {ctx.author.name}'\
-            '\nCheck the latest log for the full traceback...',
+            f'\nFull traceback:\n{traceback.format_exc()}',
         )
 
     # Called when there are any non-caught errors that occur
@@ -121,16 +120,16 @@ class PMAMBot(commands.Bot):
         log(
             '\nAn error occurred with the bot!'\
             f'\nError details: {event}'\
-            '\nCheck the latest log for the full traceback...',
+            '\nCheck the latest log for the full traceback...'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
             log_level=2
         )
-        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
         await self.get_channel(pmam_channelid_modbots).send(
             '\nAn error occurred with the bot!'\
             f'\nError details: {event}'\
-            '\nCheck the latest log for the full traceback...'
+            f'\nFull traceback:\n{traceback.format_exc()}',
         )
 
 bot = PMAMBot()
@@ -576,7 +575,7 @@ async def chocolate(ctx: commands.Context, user: discord.Member):
 
 @bot.tree.command()
 @app_commands.describe("Pings the bot.")
-@app_commands.Cooldown(1, 3)
+@app_commands.checks.Cooldown(1, 3)
 async def ping(interaction: discord.Interaction):
     """Pings the bot"""
     await interaction.response.defer(thinking=True)
