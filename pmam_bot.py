@@ -90,35 +90,38 @@ class PMAMBot(commands.Bot):
             return
         
         log(
-            f'\nAn error relating to bot commands occurred!'\
-            f'\nEvent details: {exception}'\
-            f'\nCheck the latest log for the full traceback...',
+            '\nAn error relating to bot commands occurred!'\
+            f'\nError details: {exception}'\
+            f'\nCommand issued: {ctx.command.name}'\
+            f'\nCommand issued by: {ctx.author.name}'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
             log_level=2
         )
-        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
         await self.get_channel(pmam_channelid_modbots).send(
-            f'\nAn error relating to bot commands occurred!'\
-            f'\nEvent details: {exception}'\
-            f'\nCheck the latest log for the full traceback...'
+            '\nAn error relating to bot commands occurred!'\
+            f'\nError details: {exception}'\
+            f'\nCommand issued: {ctx.command.name}'\
+            f'\nCommand issued by: {ctx.author.name}'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
         )
 
     # Called when there are any non-caught errors that occur
     async def on_error(self, event, args = None, kwargs = None):
         log(
-            f'\nAn error occurred with the bot!'\
-            f'\nEvent details: {event}'\
-            f'\nCheck the latest log for the full traceback...',
+            '\nAn error occurred with the bot!'\
+            f'\nError details: {event}'\
+            '\nCheck the latest log for the full traceback...'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
             log_level=2
         )
-        log(f"Full traceback:\n{traceback.format_exc()}", 2, False)
 
         # Notify mods and admins the bot did not work correctly
         await self.get_channel(pmam_channelid_modbots).send(
-            f'\nAn error occurred with the bot!'\
-            f'\nEvent details: {event}'\
-            f'\nCheck the latest log for the full traceback...'
+            '\nAn error occurred with the bot!'\
+            f'\nError details: {event}'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
         )
 
 intents = discord.Intents.default()
@@ -582,7 +585,7 @@ async def chocolate(ctx, user):
 
 @bot.tree.command()
 @app_commands.describe("Pings the bot.")
-@app_commands.Cooldown(1, 3)
+@app_commands.checks.Cooldown(1, 3)
 async def ping(interaction: discord.Interaction):
     """Pings the bot"""
     await interaction.response.defer(thinking=True)
