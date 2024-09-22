@@ -5,7 +5,7 @@ from PIL import Image, ImageFont, ImageDraw
 
 from logger import log
 
-pmam_guildid: int = 830239808596606976 #originally 969790418394964019
+pmam_guild_id: int = 830239808596606976 #originally 969790418394964019
 pmam_roleid_robot: int = 830240292183212042
 pmam_categorychannel_staff: int = 830243658204184617
 
@@ -78,7 +78,7 @@ class leveling_system(commands.Cog):
         if isinstance(message.channel, discord.DMChannel):
             return
 
-        if (message.guild.id != pmam_guildid) or (message.author.bot) or ((message.channel.id not in exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
+        if (message.guild.id != pmam_guild_id) or (message.author.bot) or ((message.channel.id not in exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
             return
 
         if message.author.id not in self.cooldowns.keys():
