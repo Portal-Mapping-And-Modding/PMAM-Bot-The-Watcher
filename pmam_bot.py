@@ -10,7 +10,7 @@ if os.getenv('TEST') == "1":
     token: str = os.getenv('TEST_TOKEN')
     pmam_userid_robot: int = 760644678205833256
     pmam_roleid_robot: int = 1286723072975569029
-    pmam_guildid: int = 969790418394964019
+    pmam_guild_id: int = 969790418394964019
     pmam_channelid_logs: int = 1287488941255299325
     pmam_channelid_modmail: int = 969790418394964019
     pmam_channelid_modbots: int = 1287488941255299325
@@ -19,12 +19,13 @@ else:
     token: str = os.getenv('TOKEN')
     pmam_userid_robot: int = 973750292074090506
     pmam_roleid_robot: int = 1001936969326133371
-    pmam_guildid: int = 830239808596606976
+    pmam_guild_id: int = 830239808596606976
     pmam_channelid_logs: int = 882296490314321961
     pmam_channelid_modmail: int = 1265721193885863936
     pmam_channelid_modbots: int = 830243685135941652
     pmam_messageid_verify: int = 1282465091480064112
 
+pmam_admin_id: int = 988839520797601904
 tz = datetime.datetime.now().astimezone().tzinfo
 
 # CommandTree which handles application commands errors
@@ -81,8 +82,8 @@ class PMAMBot(commands.Bot):
         await self.load_extension('levels')
         
         # Sync application/hybrid commands with the PMAM Discord server
-        self.tree.copy_global_to(guild=discord.Object(id=pmam_guildid))
-        await self.tree.sync(guild=discord.Object(id=pmam_guildid))
+        self.tree.copy_global_to(guild=discord.Object(id=pmam_guild_id))
+        await self.tree.sync(guild=discord.Object(id=pmam_guild_id))
 
         self.restart.start()
 
@@ -165,13 +166,32 @@ class PMAMBot(commands.Bot):
 
 bot = PMAMBot()
 
-@bot.check
-def pmam_check(ctx) -> bool:
-    """Checks if the command is being called in PMAM. Works for both """
-    return False
+@bot.check # GLOBAL command check
+def pmam_check(ctx: commands.Context) -> bool:
+    """Checks if the command is being called in PMAM. Works for both application and normal commands.
+
+    Args:
+        ctx (commands.Context): Command context.
+
+    Returns:
+        bool: Whether the check passed or not.
+    """
     if isinstance(ctx, commands.Context):
-        return ctx.author.guild.id == pmam_guildid
-    return ctx.user.guild.id == pmam_guildid
+        return ctx.author.guild.id == pmam_guild_id
+    return ctx.user.guild.id == pmam_guild_id
+
+def pmam_admin(ctx: commands.Context) -> bool:
+    """Checks if a PMAM admin is running this command.
+
+    Args:
+        ctx (commands.Context): Command context.
+
+    Returns:
+        bool: Whether the check passed or not.
+    """
+    if discord.utils.get(ctx.guild.roles, id=pmam_admin_id) in ctx.author.roles:
+        return True
+    return False
 
 def check_steam_games(link):
     link = f'{link}/games/?tab=all'
@@ -203,7 +223,7 @@ async def on_member_update(member_before: discord.Message, member_after: discord
 
 @bot.event
 async def on_member_join(member: discord.Member):
-    if member.guild.id != pmam_guildid:
+    if member.guild.id != pmam_guild_id:
         return
 
     account_time = member.created_at
@@ -218,7 +238,7 @@ async def on_member_join(member: discord.Member):
 
 @bot.event
 async def on_member_remove(member: discord.Member):
-    if member.guild.id != pmam_guildid:
+    if member.guild.id != pmam_guild_id:
         return
 
     account_time = member.created_at
@@ -233,7 +253,7 @@ async def on_member_remove(member: discord.Member):
 
 @bot.event #! REWORK
 async def on_message_delete(message: discord.Message):
-    if message.author.bot and message.guild.id != pmam_guildid:
+    if message.author.bot or message.guild.id != pmam_guild_id:
         return
     
     if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
@@ -259,7 +279,7 @@ async def on_message_delete(message: discord.Message):
 
 @bot.event
 async def on_message_edit(before: discord.Message, after: discord.Message):    
-    if (before.author.bot) or (before.guild.id != pmam_guildid) or (before.content == after.content):
+    if (before.author.bot) or (before.guild.id != pmam_guild_id) or (before.content == after.content):
         return
     
     if len(before.content) > 1024: before.content = before.content[:995] + "\nMore than 1024 characters..."
@@ -275,7 +295,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
 
 @bot.event
 async def on_message(message: discord.Message):
-    if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guildid).get_member(message.author.id) == None):
+    if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guild_id).get_member(message.author.id) == None):
         await bot.process_commands(message)
         return
 
@@ -611,10 +631,11 @@ async def chocolate(ctx: commands.Context, user: discord.Member):
     await ctx.send(f"{user.mention} has been given one chocolate bar :chocolate_bar:")
 
 @bot.tree.command()
-@app_commands.describe("Pings the bot.")
-@app_commands.checks.Cooldown(1, 3)
+@app_commands.checks.cooldown(1, 3)
+@app_commands.check(pmam_check)
 async def ping(interaction: discord.Interaction):
-    """Pings the bot"""
+    """Pings The Bot"""
+
     await interaction.response.defer(thinking=True)
 
     ping_embed = discord.Embed(
@@ -626,8 +647,7 @@ async def ping(interaction: discord.Interaction):
     await interaction.followup.send(file=ping_thumbnail, embed=ping_embed)
 
 @bot.command()
-@commands.bot_has_role(pmam_roleid_robot)
-@commands.has_permissions(ban_members=True)
+@commands.check(pmam_admin)
 async def restart(ctx: commands.Context):
     """Manually restart the bot."""
 
@@ -635,23 +655,24 @@ async def restart(ctx: commands.Context):
     await ctx.send("Restarting, good bye!")
     await bot.close()
 
-@bot.hybrid_command()
-@commands.bot_has_role(pmam_roleid_robot)
-@commands.has_permissions(ban_members=True)
-async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
+@bot.tree.command()
+@app_commands.check(pmam_check)
+@app_commands.check(pmam_admin)
+async def reply(interaction: discord.Interaction, member: discord.Member, *, message: str):
     """Anomalously sends a DM to a select user.
 
     Args:
-        ctx (commands.Context): Command context.
-        userid (discord.Member): The Member/User to target.
+        interaction (discord.Interaction): Interaction context.
+        user (discord.Member): Member to send DM to.
+        message (str): Message to send to member.
     """
-    if bot.get_user(user.id) == None:
-        await ctx.send(f"Could not find user {user}!", delete_after=2)
+
+    if bot.get_user(member.id) == None:
+        await interaction.response.send_message(f"Could not find user {member}!", ephemeral=True)
         return
       
-    await bot.get_user(user.id).send(f"From the PMAM Moderation Team:\n\n {message}")
-    await ctx.send(f"DM has been sent to {user.name}!", ephemeral=True)
-
+    await bot.get_user(member.id).send(f"From the PMAM Moderation Team:\n\n {message}")
+    await interaction.response.send_message(f"DM has been sent to {member.name}!", ephemeral=True)
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
