@@ -55,7 +55,7 @@ def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
 
     if log_level == 1:
         if console: print(colorama.Fore.YELLOW + f'[{formatted_time}] WARN: {msg}')
-        logging.warn(msg)
+        logging.warning(msg)
         return
     elif log_level == 2:
         if console: print(colorama.Fore.RED + f'[{formatted_time}] ERROR: {msg}')

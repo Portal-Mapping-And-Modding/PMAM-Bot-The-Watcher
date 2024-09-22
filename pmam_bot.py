@@ -6,26 +6,63 @@ import os, datetime, requests, asyncio, traceback
 
 from logger import setup_logging, log
 
-token: str = os.getenv('TOKEN')
-pmam_guildid: int = 830239808596606976
-test_guildid: int = 845791759984230430 #! REWORK FOR BOT TO BE ABLE TO BE PROPERLY TESTED
-pmam_channelid_logs: int = 882296490314321961
-pmam_channelid_modmail: int = 1265721193885863936
-pmam_channelid_modbots: int = 830243685135941652
-test_channelid_modmail: int = 845791759984230433
-pmam_messageid_verify: int = 1282465091480064112
-pmam_roleid_robot: int = 830240292183212042
-tz = datetime.datetime.now().astimezone().tzinfo # Current timezone on the system the bot is running on
+if os.getenv('TEST') == "1":
+    token: str = os.getenv('TEST_TOKEN')
+    pmam_userid_robot: int = 760644678205833256
+    pmam_roleid_robot: int = 1286723072975569029
+    pmam_guildid: int = 969790418394964019
+    pmam_channelid_logs: int = 1287488941255299325
+    pmam_channelid_modmail: int = 969790418394964019
+    pmam_channelid_modbots: int = 1287488941255299325
+    pmam_messageid_verify: int = 1287488894769696800
+else:
+    token: str = os.getenv('TOKEN')
+    pmam_userid_robot: int = 973750292074090506
+    pmam_roleid_robot: int = 1001936969326133371
+    pmam_guildid: int = 830239808596606976
+    pmam_channelid_logs: int = 882296490314321961
+    pmam_channelid_modmail: int = 1265721193885863936
+    pmam_channelid_modbots: int = 830243685135941652
+    pmam_messageid_verify: int = 1282465091480064112
+
+tz = datetime.datetime.now().astimezone().tzinfo
+
+# CommandTree which handles application commands errors
+class PMAMCommandTree(app_commands.CommandTree):
+    async def on_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
+        if isinstance(error, app_commands.errors.CheckFailure) or isinstance(error, app_commands.errors.MissingPermissions):
+            await interaction.response.send_message("You can not use this command.", ephemeral=True)
+            return
+        elif isinstance(error, app_commands.CommandOnCooldown):
+            await interaction.response.send_message(f"This command is on cooldown for `{error.retry_after}` seconds. Please try again later.", ephemeral=True)
+            return
+
+        log(
+            '\nAn error occurred with the bot!'\
+            f'\nError details: {error}'\
+            '\nCheck the latest log for the full traceback...'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
+            log_level=2
+        )
+
+        # Notify mods and admins the bot did not work correctly
+        await self.get_channel(pmam_channelid_modbots).send(
+            '\nAn error occurred with the bot!'\
+            f'\nError details: {error}'\
+            f'\nFull traceback:\n{traceback.format_exc()}',
+        )
+
 
 class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
     # its prefix can be changed after configs are setup in bot_initialization
     def __init__(self, *,
                  command_prefix: str = "?",
+                 tree_cls: app_commands.CommandTree = PMAMCommandTree,
                  description: str = "The Portal Mapping and Modding Discord server's bot, The Watcher!",
                  intents: discord.Intents = discord.Intents.all()
                  ):
-        super().__init__(command_prefix=command_prefix, description=description, intents=intents)
+        super().__init__(command_prefix=command_prefix, tree_cls=tree_cls, description=description, intents=intents)
         self.dm_cooldown = {} # List of users on the cooldown for modmail DMs
 
     # Task to restart the bot so the sh script can backup the database
@@ -44,14 +81,8 @@ class PMAMBot(commands.Bot):
         await self.load_extension('levels')
         
         # Sync application/hybrid commands with the PMAM Discord server
-        # Test bot is not in PMAM server so it can't sync specifically to PMAM
-        try:
-            self.tree.copy_global_to(guild=discord.Object(id=pmam_guildid))
-            await self.tree.sync(guild=discord.Object(id=pmam_guildid))
-        except Exception as e:
-            log("Application command syncing failed!", 1)
-            log("This is mostly likely because this is the test bot so please ignore.", 1)
-            log(e, 1)
+        self.tree.copy_global_to(guild=discord.Object(id=pmam_guildid))
+        await self.tree.sync(guild=discord.Object(id=pmam_guildid))
 
         self.restart.start()
 
@@ -88,7 +119,7 @@ class PMAMBot(commands.Bot):
         elif isinstance(exception, commands.MissingRequiredArgument):
             await ctx.send(f"You're missing the `{exception.param}` parameter of this command.", delete_after=3)
             return
-        elif isinstance(exception, commands.MissingPermissions) or isinstance(exception, commands.MissingAnyRole):
+        elif isinstance(exception, commands.MissingPermissions) or isinstance(exception, commands.MissingAnyRole) or isinstance(exception, commands.CheckFailure):
             await ctx.send(f"You do not have permission to run this command.", delete_after=3)
             return
         elif isinstance(exception, commands.CommandOnCooldown):
@@ -134,6 +165,14 @@ class PMAMBot(commands.Bot):
 
 bot = PMAMBot()
 
+@bot.check
+def pmam_check(ctx) -> bool:
+    """Checks if the command is being called in PMAM. Works for both """
+    return False
+    if isinstance(ctx, commands.Context):
+        return ctx.author.guild.id == pmam_guildid
+    return ctx.user.guild.id == pmam_guildid
+
 def check_steam_games(link):
     link = f'{link}/games/?tab=all'
 
@@ -144,8 +183,6 @@ def check_steam_games(link):
         return True
     else:
         return False
-
-
 
 @bot.event
 async def on_member_update(member_before: discord.Message, member_after: discord.Message):
