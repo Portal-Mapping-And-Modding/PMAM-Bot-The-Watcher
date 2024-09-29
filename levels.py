@@ -1,5 +1,7 @@
 from io import BytesIO
-import discord, sqlite3, requests, datetime, typing
+import discord
+from discord import app_commands
+import sqlite3, requests, datetime, typing
 from discord.ext import commands, tasks
 from PIL import Image, ImageFont, ImageDraw
 
