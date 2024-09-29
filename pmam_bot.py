@@ -67,8 +67,8 @@ class PMAMBot(commands.Bot):
         self.dm_cooldown = {} # List of users on the cooldown for modmail DMs
 
     # Task to restart the bot so the sh script can backup the database
-    time = datetime.time(hour=00, tzinfo=tz)
-    @tasks.loop(time=time)
+    restart_time = datetime.time(hour=00, tzinfo=tz)
+    @tasks.loop(time=restart_time)
     async def restart(self):
         log("Restarting and backing up bot!", 1)
         await self.close()
@@ -148,7 +148,7 @@ class PMAMBot(commands.Bot):
         )
 
     # Called when there are any non-caught errors that occur
-    async def on_error(self, event, *, args = None, kwargs = None):
+    async def on_error(self, event, *args, **kwargs):
         log(
             '\nAn error occurred with the bot!'\
             f'\nError details: {event}'\
