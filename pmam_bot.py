@@ -4,7 +4,7 @@ from discord.ext import commands, tasks
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
 import os, datetime, requests, asyncio, traceback
 
-from logger import setup_logging, log
+from logger import setupLogging, log
 
 if os.getenv('TEST') == "1":
     token: str = os.getenv('TEST_TOKEN')
@@ -674,5 +674,5 @@ async def reply(interaction: discord.Interaction, member: discord.Member, *, mes
     await bot.get_user(member.id).send(f"From the PMAM Moderation Team:\n\n {message}")
     await interaction.response.send_message(f"DM has been sent to {member.name}!", ephemeral=True)
 
-setup_logging(os.getcwd())
+setupLogging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
