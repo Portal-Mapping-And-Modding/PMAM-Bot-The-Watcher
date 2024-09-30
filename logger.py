@@ -4,7 +4,10 @@ import os
 import colorama
 import datetime
 if os.name != "nt":
-    from cysystemd import journal
+    try:
+        from cysystemd import journal
+    except:
+        pass
 
 formatted_time = datetime.datetime.now(datetime.datetime.now().astimezone().tzinfo).strftime("%d-%m-%Y %H:%M:%S")
 
@@ -33,9 +36,11 @@ def setup_logging(base_path: str) -> None:
     )
     handler.setFormatter(logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%d-%m-%Y %H:%M:%S", style="{"))
     logger.addHandler(handler)
-    if os.name != "nt":
-        logger.addHandler(journal.JournaldLogHandler())
-
+    if os.name != "nt": # Set log handler for Linux's systemd journal system
+        try:
+            logger.addHandler(journal.JournaldLogHandler())
+        except:
+            pass
 # A log function to both log to the log file and print to the console, printing to the console can be optional
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """Logs a message to both the console and the log file.
