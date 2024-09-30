@@ -1,5 +1,5 @@
 import logging
-from logging import handlers
+import logging.handlers
 import os
 import colorama
 import datetime
@@ -11,7 +11,7 @@ if os.name != "nt":
 
 formatted_time = datetime.datetime.now(datetime.datetime.now().astimezone().tzinfo).strftime("%d-%m-%Y %H:%M:%S")
 
-def setup_logging(base_path: str) -> None:
+def setupLogging(base_path: str) -> None:
     """Setup logging for the Discord Bot
 
     Args:
@@ -29,10 +29,11 @@ def setup_logging(base_path: str) -> None:
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    handler = logging.FileHandler(
-        filename = os.path.join(log_path, f"bot_log-({datetime.datetime.now().strftime('%d-%m-%Y %H-%M-%S')}).log"), # Log location
-        mode= "w", # Mode to write to the log
-        encoding = "utf-8", # Log encoding
+    handler = logging.handlers.TimedRotatingFileHandler(
+        filename = os.path.join(log_path, f"bot_log.log"),
+        when="D",
+        backupCount = 21, # 21 days/3 weeks worth of logs will be kept, each day the oldest one will be deleted.
+        encoding = "utf-8",
     )
     handler.setFormatter(logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%d-%m-%Y %H:%M:%S", style="{"))
     logger.addHandler(handler)
@@ -41,6 +42,9 @@ def setup_logging(base_path: str) -> None:
             logger.addHandler(journal.JournaldLogHandler())
         except:
             pass
+    
+    logging.info("\n") # To separate new logs in the same day
+
 # A log function to both log to the log file and print to the console, printing to the console can be optional
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """Logs a message to both the console and the log file.
@@ -59,15 +63,15 @@ def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """
 
     if log_level == 1:
-        if console: print(colorama.Fore.YELLOW + f'[{formatted_time}] WARN: {msg}')
+        if console: print(colorama.Fore.YELLOW + f'[{formatted_time}] WARN: {msg}' + colorama.Fore.WHITE)
         logging.warning(msg)
         return
     elif log_level == 2:
-        if console: print(colorama.Fore.RED + f'[{formatted_time}] ERROR: {msg}')
+        if console: print(colorama.Fore.RED + f'[{formatted_time}] ERROR: {msg}' + colorama.Fore.WHITE)
         logging.error(msg)
         return
     elif log_level == 3:
-        if console: print(colorama.Fore.WHITE + colorama.Back.RED + f'[{formatted_time}] CRITICAL: {msg}')
+        if console: print(colorama.Fore.WHITE + colorama.Back.RED + f'[{formatted_time}] CRITICAL: {msg}' + colorama.Fore.WHITE)
         logging.critical(msg)
         return
 
