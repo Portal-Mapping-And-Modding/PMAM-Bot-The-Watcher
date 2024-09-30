@@ -10,11 +10,10 @@ The [discord.py](https://github.com/Rapptz/discord.py) bot used in the Portal Ma
 
 **Setting Up The Bot:**
 
-The Watcher uses the Python version `3.12.5`.
+The bot can be setup in both Windows and Linux, however Linux is more recommended. The Watcher uses Python version `3.11.0rc1`.
 
-Simply use `pip install -r ./requirements.txt` to install all required python modules.
+To setup the Python environment for the bot, run `python3.11 -m venv .venv`. If using Visual Studio Code, it can auto detect the newly created environment. If it doesn't, run `./.venv/bin/Activate.ps1` for Windows or `source ./.venv/bin/activate` for Linux. Next use `pip install -r ./requirements.txt` to install all required python modules.
 
-If using Linux, optionally the systemd python package can be installed for logging to be sent to journal.
-The systemd header files are needed for this. If they are not installed, they can be installed using your distribution's package manager. Ex: `sudo apt install libsystemd-dev`. Once this is done then using `pip install systemd` will not result in the package failing to install and allowing you to access the bots logging with `journalctl` or `systemctl` when the bot is run as a service.
+If using Linux, optionally the systemd python package can be installed for logging to be sent to journal. The systemd header files are needed for this. If they are not installed, they can be installed using your distribution's package manager. Ex: `sudo apt install libsystemd-dev`. Once this is done then using `pip install systemd` will not result in the package failing to install and allowing you to access the bots logging with `journalctl` or `systemctl` when the bot is run as a service.
 
 This bot uses the [`GNU Affero General Public License v3.0 (GNU AGPL V3.0)`](https://choosealicense.com/licenses/agpl-3.0/#) License.
