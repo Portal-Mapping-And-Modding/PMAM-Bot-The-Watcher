@@ -28,7 +28,7 @@ else:
 pmam_admin_id: int = 988839520797601904
 tz = datetime.datetime.now().astimezone().tzinfo
 
-# CommandTree which handles application commands errors
+# Custom CommandTree subclass which handles application commands errors
 class PMAMCommandTree(app_commands.CommandTree):
     async def on_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.errors.CheckFailure) or isinstance(error, app_commands.errors.MissingPermissions):
@@ -53,7 +53,7 @@ class PMAMCommandTree(app_commands.CommandTree):
             f'\nFull traceback:\n{traceback.format_exc()}',
         )
 
-
+# Custom commands.Bot subclass for the bot
 class PMAMBot(commands.Bot):
     # command_prefix and description need to be set blank for now so once `bot` is defined here,
     # its prefix can be changed after configs are setup in bot_initialization

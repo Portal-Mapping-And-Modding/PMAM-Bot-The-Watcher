@@ -3,26 +3,28 @@ import logging.handlers
 import os
 import colorama
 import datetime
-if os.name != "nt":
+if os.name != "nt": # Only need to import this for Linux
     try:
         from cysystemd import journal
     except:
         pass
 
-formatted_time = datetime.datetime.now(datetime.datetime.now().astimezone().tzinfo).strftime("%d-%m-%Y %H:%M:%S")
+tz = datetime.datetime.now().astimezone().tzinfo
+now = datetime.datetime.now(tz)
+formatted_time = now.strftime("%d-%m-%Y %H:%M:%S")
 
 def setupLogging(base_path: str) -> None:
-    """Setup logging for the Discord Bot
+    """Setup logging for the Discord Bot.
 
     Args:
-        base_path (str): The base path of the bot, should target "src"
+        base_path (str): The base path of the bot, should target "src".
     """
     log_path = os.path.join(base_path, "Logs")
 
     if not os.path.exists(log_path):
         os.mkdir(log_path)
 
-    # Setup colorama for Windows machines
+    # Setup colorama for Windows machines.
     if os.name == "nt":
         colorama.init(autoreset=True)
 
@@ -30,14 +32,15 @@ def setupLogging(base_path: str) -> None:
     logger.setLevel(logging.INFO)
 
     handler = logging.handlers.TimedRotatingFileHandler(
-        filename = os.path.join(log_path, f"bot_log.log"),
-        when="D",
+        filename = os.path.join(log_path, "bot_log.log"),
+        when = "D",
+        atTime = datetime.time(hour=0, minute=3, tzinfo=tz), # Log roll over will occur a little after the midnight when the bot restarts.
         backupCount = 21, # 21 days/3 weeks worth of logs will be kept, each day the oldest one will be deleted.
         encoding = "utf-8",
     )
     handler.setFormatter(logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%d-%m-%Y %H:%M:%S", style="{"))
     logger.addHandler(handler)
-    if os.name != "nt": # Set log handler for Linux's systemd journal system
+    if os.name != "nt": # Add log handler for Linux's systemd journal system.
         try:
             logger.addHandler(journal.JournaldLogHandler())
         except:
@@ -45,7 +48,11 @@ def setupLogging(base_path: str) -> None:
     
     logging.info("\n") # To separate new logs in the same day
 
-# A log function to both log to the log file and print to the console, printing to the console can be optional
+    # The bot could potentially reboot after the log rollover point, check if this happens then manually rollover.
+    if now > now.replace(hour=0, minute=3, second=0, microsecond=0):
+        handler.doRollover()
+
+# A log function to both log to the log file and print to the console, printing to the console can be optional.
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """Logs a message to both the console and the log file.
     Printing to console can be optional. Defaults to INFO logging with console set to True.
