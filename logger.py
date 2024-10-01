@@ -34,7 +34,7 @@ def setupLogging(base_path: str) -> None:
     handler = logging.handlers.TimedRotatingFileHandler(
         filename = os.path.join(log_path, "bot_log.log"),
         when = "D",
-        atTime = datetime.time(hour=0, minute=3, tzinfo=tz), # Log roll over will occur a little after the midnight when the bot restarts.
+        atTime = datetime.time(hour=0, minute=5, tzinfo=tz), # Log roll over will occur a little after the midnight when the bot restarts.
         backupCount = 21, # 21 days/3 weeks worth of logs will be kept, each day the oldest one will be deleted.
         encoding = "utf-8",
     )
@@ -47,10 +47,6 @@ def setupLogging(base_path: str) -> None:
             pass
     
     logging.info("\n") # To separate new logs in the same day
-
-    # The bot could potentially reboot after the log rollover point, check if this happens then manually rollover.
-    if now > now.replace(hour=0, minute=3, second=0, microsecond=0):
-        handler.doRollover()
 
 # A log function to both log to the log file and print to the console, printing to the console can be optional.
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
