@@ -39,6 +39,8 @@ class PMAMCommandTree(app_commands.CommandTree):
         elif isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(f"This command is on cooldown for `{error.retry_after}` seconds. Please try again later.", ephemeral=True)
             return
+        else:
+            await interaction.response.send_message(f"A error occurred with this command! Notify Orsell!", ephemeral=True)
 
         log(
             '\nAn error occurred with the bot!'\
@@ -132,16 +134,16 @@ class PMAMBot(commands.Bot):
         if isinstance(exception, commands.CommandNotFound):
             return
         elif isinstance(exception, commands.MissingRequiredArgument):
-            await ctx.send(f"You're missing the `{exception.param}` parameter of this command.", delete_after=3)
+            await ctx.reply(f"You're missing the `{exception.param}` parameter of this command.", delete_after=3)
             return
         elif isinstance(exception, commands.MissingPermissions) or isinstance(exception, commands.MissingAnyRole) or isinstance(exception, commands.CheckFailure):
-            await ctx.send(f"You do not have permission to run this command.", delete_after=3)
+            await ctx.reply(f"You do not have permission to run this command.", delete_after=3)
             return
         elif isinstance(exception, commands.CommandOnCooldown):
-            await ctx.send(f"This command is on cooldown for `{exception.retry_after}` seconds. Please try again later.", delete_after=3)
+            await ctx.reply(f"This command is on cooldown for `{exception.retry_after}` seconds. Please try again later.", delete_after=3)
             return
         else:
-            await ctx.send(f"A error occurred with this command!", delete_after=3)
+            await ctx.reply(f"A error occurred with this command! Notify Orsell!", delete_after=3)
         
         log(
             '\nAn error relating to bot commands occurred!'\
@@ -265,7 +267,7 @@ async def on_member_remove(member: discord.Member):
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
 
-# Have to make separate function in order to thread compressing a 7zip archive so it doesn't block the bot.
+# Have to make separate function in order to thread compressing a 7zip archive so it doesn't cause blocking.
 def compressFile(fp):
    with py7zr.SevenZipFile(fp + ".7z", "w") as archive:
         archive.write(fp)
