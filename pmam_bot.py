@@ -17,6 +17,7 @@ if os.getenv('TEST') == "1":
     pmam_channelid_modmail: int = 969790418394964019
     pmam_channelid_modbots: int = 1287488941255299325
     pmam_messageid_verify: int = 1287488894769696800
+    pmam_admin_id: int = 1261420793779191880
 else:
     token: str = os.getenv('TOKEN')
     pmam_userid_robot: int = 973750292074090506
@@ -26,8 +27,9 @@ else:
     pmam_channelid_modmail: int = 1265721193885863936
     pmam_channelid_modbots: int = 830243685135941652
     pmam_messageid_verify: int = 1282465091480064112
+    pmam_admin_id: int = 988839520797601904
 
-pmam_admin_id: int = 988839520797601904
+
 tz = datetime.datetime.now().astimezone().tzinfo
 
 # Custom CommandTree subclass which handles application commands errors
