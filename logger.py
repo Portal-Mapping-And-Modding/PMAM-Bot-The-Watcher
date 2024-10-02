@@ -46,7 +46,7 @@ def setupLogging(base_path: str) -> None:
         except:
             pass
     
-    logging.info("\n") # To separate new logs in the same day
+    logging.info(f"\n\n----------------NEW BOT SESSION BEGIN: {formatted_time}----------------") # To separate new logs in the same day
 
 # A log function to both log to the log file and print to the console, printing to the console can be optional.
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:

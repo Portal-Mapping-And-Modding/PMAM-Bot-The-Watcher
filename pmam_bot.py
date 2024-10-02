@@ -2,10 +2,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
-import os, datetime, requests, asyncio, traceback
+import os, datetime, requests, asyncio, traceback, py7zr, threading
+from dotenv import load_dotenv
 
 from logger import setupLogging, log
 
+load_dotenv() # Get environment variables from .env file.
 if os.getenv('TEST') == "1":
     token: str = os.getenv('TEST_TOKEN')
     pmam_userid_robot: int = 760644678205833256
@@ -85,8 +87,20 @@ class PMAMBot(commands.Bot):
         self.tree.copy_global_to(guild=discord.Object(id=pmam_guild_id))
         await self.tree.sync(guild=discord.Object(id=pmam_guild_id))
 
+        # Start the auto restarting for the bot and check if any local deleted_files are over a month old.
         self.restart.start()
-
+                
+        # Check if there are kept deleted_files over a 30 days old, delete if they are.
+        log("Checking for any deleted_files for 30 days old...")
+        if os.path.exists("deleted_files"):
+            for file in os.listdir("deleted_files"):
+                if (datetime.datetime.now() - datetime.datetime.fromtimestamp(os.path.getmtime(f'deleted_files/{file}'))) > datetime.timedelta(days=30):
+                    os.remove(f'deleted_files/{file}')
+                    log(f"Removed {file}.")
+        else:
+            os.mkdir("deleted_files")
+            log('Made "deleted_files" directory.')
+        
         log("Finished setting up bot hook...")
 
     # Runs when the bot has finished running through setup_hook
@@ -251,31 +265,90 @@ async def on_member_remove(member: discord.Member):
     embed.add_field(name="Created at: ", value = f"`{str(account_time)[:-7]}` ({str(age)[:-7]} ago)")
     await channel.send(embed=embed)
 
-@bot.event #! REWORK
+# Have to make separate function in order to thread compressing a 7zip archive so it doesn't block the bot.
+def compressFile(fp):
+   with py7zr.SevenZipFile(fp + ".7z", "w") as archive:
+        archive.write(fp)
+
+@bot.event
 async def on_message_delete(message: discord.Message):
     if message.author.bot or message.guild.id != pmam_guild_id:
         return
     
-    if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
-
     channel = bot.get_channel(pmam_channelid_logs)
-    embed = discord.Embed(color = 0xff470f, timestamp = datetime.datetime.now(), description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}")
-    embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.display_avatar.url)
-    embed.set_footer(text = f"Author: {message.author.id} | Message ID: {message.id}")
-    await channel.send(embed = embed)
+
+    if len(message.content) > 0:
+        log(f"Member {message.author} has deleted a message.")
+        if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
+        message_embed = discord.Embed(
+            color = 0xff470f,
+            timestamp = datetime.datetime.now(),
+            description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}"
+        )
+        message_embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.display_avatar.url)
+        message_embed.set_footer(text = f"Author: {message.author.id} | Message ID: {message.id}")
+        await channel.send(embed = message_embed)
+        log(f"Message sent by {message.author} deleted in {message.channel.name}:\n{message.content}")
     
-    if message.attachments is []:
+    if message.attachments == []:
+        log("Finished on_message_delete event.")
         return
     
-    for i in message.attachments:
-        if i.content_type.startswith("image"):
-            # os.remove("image.png")
-            await i.save("image.png")
-            image_embed = discord.Embed(color=0xff470f, timestamp=datetime.datetime.now(), description=f"**Image sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**")
-            image_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.display_avatar.url)
-            image_embed.set_image(url="attachment://image.png")
-            image_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
-            await channel.send(file=discord.File("image.png"), embed=image_embed)
+    log(f"Member {message.author} has deleted attachment(s).")
+    if not os.path.exists("deleted_files"): # Make "deleted_files" folder if for some reason it doesn't exist
+        os.mkdir("deleted_files")
+    
+    # Attachments were part of the message, so get them and log them if possible.
+    attachment_num = 1
+    attachment_list = []
+    compressFileThread = None
+    for deleted_attachment in message.attachments:
+        attachment_name = f"{message.author}-{attachment_num}_{deleted_attachment.filename}" # Format name of deleted file to mention the original author.
+        # Some file types on Discord's servers aren't cached so getting the saved cache might fail, instead save without the cache if it fails.
+        try:
+            await deleted_attachment.save("deleted_files/" + attachment_name, use_cached=True)
+        except:
+            await deleted_attachment.save("deleted_files/" + attachment_name)
+        
+        # Bot has a 8MB upload limit. So if it is over this limit compress it into a 7zip archive.
+        if deleted_attachment.size > 8000000:
+            log(f'The file "{attachment_name}" is over 8MB, compressing into 7z...', 1)
+            compressFileThread = threading.Thread(target=compressFile, args=("deleted_files/" + attachment_name,))
+            compressFileThread.start()
+            attachment = "deleted_files/" + attachment_name + ".7z"
+        else:
+            attachment = "deleted_files/" + attachment_name
+
+        attachment_list.append(attachment)
+        attachment_num += 1
+    if compressFileThread:
+        compressFileThread.join()
+
+    deleted_attachment_embed = discord.Embed(
+        color = 0xff470f,
+        timestamp = datetime.datetime.now(),
+        description = f"**File(s) sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\nFile(s) are attached below..."
+    )
+    deleted_attachment_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.display_avatar.url)
+    deleted_attachment_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
+    await channel.send(embed=deleted_attachment_embed)
+    log(f"File(s) sent by {message.author} deleted in {message.channel.name}")
+
+    for attachment in attachment_list:
+        # If the file is still too big even after compression, to have the file still be logged, it will be kept on the server for a month after which it is automatically deleted.
+        if os.path.getsize(attachment) > 8000000:
+            await channel.send(content=f'\n**The file "{attachment}" exceeds Discord\'s 8MB bot upload limit even after compression.\nIt\'s archive size is `{os.path.getsize(attachment)}` bytes.\nThe archive will be stored locally on the bot\'s server for 30 days.**\n')
+            log(f'**The file "{attachment}" exceeds Discord\'s 8MB bot upload limit even after compression.\nIt\'s archive size is `{os.path.getsize(attachment)}` bytes.\nThe archive will be stored locally on the bot\'s server for 30 days.**\n', 2) 
+            os.remove(attachment.replace(".7z", "")) # Remove the original non-archived file and keep the 7z
+        else:
+            await channel.send(file=discord.File(attachment))
+            log(f"Send {attachment} to logs channel.")
+        
+        if ".7z" in attachment: os.remove(attachment.replace(".7z", "")) # Remove the original non-archived file
+        os.remove(attachment) # Remove the original uploaded file
+        log(f'Removed {attachment}.')
+    
+    log("Finished on_message_delete event.")
 
 @bot.event
 async def on_message_edit(before: discord.Message, after: discord.Message):    
