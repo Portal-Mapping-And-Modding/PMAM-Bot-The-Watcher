@@ -44,20 +44,21 @@ class PMAMCommandTree(app_commands.CommandTree):
         else:
             await interaction.response.send_message(f"A error occurred with this command! Notify Orsell!", ephemeral=True)
 
-        log(
-            '\nAn error occurred with the bot!'\
-            f'\nError details: {error}'\
-            '\nCheck the latest log for the full traceback...'\
-            f'\nFull traceback:\n{traceback.format_exc()}',
-            log_level=2
-        )
-
+        error_msg = '\nAn error occurred with the bot!'\
+                    f'\nError details: {error}'
+        error_msg_traceback = f'\nFull traceback:\n{traceback.format_exc()}'
+        
+        log(error_msg + error_msg_traceback, log_level=2)
+        
         # Notify mods and admins the bot did not work correctly
-        await self.get_channel(pmam_channelid_modbots).send(
-            '\nAn error occurred with the bot!'\
-            f'\nError details: {error}'\
-            f'\nFull traceback:\n{traceback.format_exc()}',
-        )
+        if len(error_msg + error_msg_traceback) > 2000:
+            await bot.get_channel(pmam_channelid_modbots).send(
+                error_msg +
+                '\nFull traceback is too big to send!'\
+                '\nCheck the bot\'s logs for the full error!'
+            )
+            return
+        await bot.get_channel(pmam_channelid_modbots).send(error_msg + error_msg_traceback)
 
 # Custom commands.Bot subclass for the bot
 class PMAMBot(commands.Bot):
@@ -147,40 +148,41 @@ class PMAMBot(commands.Bot):
         else:
             await ctx.reply(f"A error occurred with this command! Notify Orsell!", delete_after=3)
         
-        log(
-            '\nAn error relating to bot commands occurred!'\
-            f'\nError details: {exception}'\
-            f'\nCommand issued: {ctx.command.name}'\
-            f'\nCommand issued by: {ctx.author.name}'\
-            f'\nFull traceback:\n{traceback.format_exc()}',
-            log_level=2
-        )
+        error_msg = '\nAn error relating to bot commands occurred!'\
+                    f'\nError details: {exception}'\
+                    f'\nCommand issued: {ctx.command.name}'\
+                    f'\nCommand issued by: {ctx.author.name}'
+        error_msg_traceback = f'\nFull traceback:\n{traceback.format_exc()}'
+
+        log(error_msg + error_msg_traceback, log_level=2)
 
         # Notify mods and admins the bot did not work correctly
-        await self.get_channel(pmam_channelid_modbots).send(
-            '\nAn error relating to bot commands occurred!'\
-            f'\nError details: {exception}'\
-            f'\nCommand issued: {ctx.command.name}'\
-            f'\nCommand issued by: {ctx.author.name}'\
-            f'\nFull traceback:\n{traceback.format_exc()}',
-        )
+        if len(error_msg + error_msg_traceback) > 2000:
+            await self.get_channel(pmam_channelid_modbots).send(
+                error_msg +
+                '\nFull traceback is too big to send!'\
+                '\nCheck the bot\'s logs for the full error!'
+            )
+            return
+        await self.get_channel(pmam_channelid_modbots).send(error_msg + error_msg_traceback)
 
     # Called when there are any non-caught errors that occur
     async def on_error(self, event, *args, **kwargs):
-        log(
-            '\nAn error occurred with the bot!'\
-            f'\nError details: {event}'\
-            '\nCheck the latest log for the full traceback...'\
-            f'\nFull traceback:\n{traceback.format_exc()}',
-            log_level=2
-        )
+        error_msg = '\nAn error occurred with the bot!'\
+                    f'\nError details: {event}'
+        error_msg_traceback = f'\nFull traceback:\n{traceback.format_exc()}'
+        
+        log(error_msg + error_msg_traceback, log_level=2)
 
         # Notify mods and admins the bot did not work correctly
-        await self.get_channel(pmam_channelid_modbots).send(
-            '\nAn error occurred with the bot!'\
-            f'\nError details: {event}'\
-            f'\nFull traceback:\n{traceback.format_exc()}',
-        )
+        if len(error_msg + error_msg_traceback) > 2000:
+            await self.get_channel(pmam_channelid_modbots).send(
+                error_msg +
+                '\nFull traceback is too big to send!'\
+                '\nCheck the bot\'s logs for the full error!',
+            )
+            return
+        await self.get_channel(pmam_channelid_modbots).send(error_msg + error_msg_traceback)
 
 bot = PMAMBot()
 
