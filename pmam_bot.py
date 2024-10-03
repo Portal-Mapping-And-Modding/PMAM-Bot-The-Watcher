@@ -42,7 +42,7 @@ class PMAMCommandTree(app_commands.CommandTree):
             await interaction.response.send_message(f"This command is on cooldown for `{error.retry_after}` seconds. Please try again later.", ephemeral=True)
             return
         else:
-            await interaction.response.send_message(f"A error occurred with this command! Notify Orsell!", ephemeral=True)
+            await interaction.response.send_message(f"A error occurred with this command! Notify the mods/admins!", ephemeral=True)
 
         error_msg = '\nAn error occurred with the bot!'\
                     f'\nError details: {error}'
@@ -146,7 +146,7 @@ class PMAMBot(commands.Bot):
             await ctx.reply(f"This command is on cooldown for `{exception.retry_after}` seconds. Please try again later.", delete_after=3)
             return
         else:
-            await ctx.reply(f"A error occurred with this command! Notify Orsell!", delete_after=3)
+            await ctx.reply(f"A error occurred with this command! Notify the mods/admins!", delete_after=3)
         
         error_msg = '\nAn error relating to bot commands occurred!'\
                     f'\nError details: {exception}'\
