@@ -29,9 +29,6 @@ else:
     pmam_messageid_verify: int = 1282465091480064112
     pmam_admin_id: int = 988839520797601904
 
-
-tz = datetime.datetime.now().astimezone().tzinfo
-
 # Custom CommandTree subclass which handles application commands errors
 class PMAMCommandTree(app_commands.CommandTree):
     async def on_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
@@ -72,9 +69,10 @@ class PMAMBot(commands.Bot):
                  ):
         super().__init__(command_prefix=command_prefix, tree_cls=tree_cls, description=description, intents=intents)
         self.dm_cooldown = {} # List of users on the cooldown for modmail DMs
+        self.tz = datetime.datetime.now().astimezone().tzinfo # current time zone for the bot
 
     # Task to restart the bot so the sh script can backup the database
-    restart_time = datetime.time(hour=00, tzinfo=tz)
+    restart_time = datetime.time(hour=0, tzinfo=datetime.datetime.now().astimezone().tzinfo)
     @tasks.loop(time=restart_time)
     async def restart(self):
         log("Restarting and backing up bot!", 1)
@@ -401,7 +399,7 @@ async def _id_check(ctx: commands.Context, user: discord.Member = None):
         await ctx.send("Invalid ID/user!", delete_after=3)
         return
     
-    time = datetime.datetime.now(tz=tz)
+    time = datetime.datetime.now(tz=bot.tz)
     account_time = user.created_at
     age = time - account_time
     if age.total_seconds() < 259200:
@@ -419,7 +417,7 @@ async def _id_check(ctx: commands.Context, user: discord.Member = None):
 
 @bot.hybrid_command()
 async def membercount(ctx: commands.Context):
-    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=tz))
+    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=bot.tz))
     embed.add_field(name="Members", value=ctx.guild.member_count)
     await ctx.send(embed=embed)
 
@@ -461,7 +459,7 @@ async def purge(ctx: commands.Context, number: int):
 @bot.hybrid_command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx: commands.Context):
-    time = datetime.datetime.now(tz=tz)
+    time = datetime.datetime.now(tz=bot.tz)
     account_time = ctx.author.created_at
     age = time - account_time
     channel = bot.get_channel(pmam_channelid_logs)
