@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
-import os, datetime, requests, asyncio, traceback, py7zr, threading
+import os, datetime, requests, asyncio, traceback, py7zr, threading, typing
 from dotenv import load_dotenv
 
 from logger import setupLogging, log
@@ -14,7 +14,7 @@ if os.getenv('TEST') == "1":
     pmam_roleid_robot: int = 1286723072975569029
     pmam_guild_id: int = 969790418394964019
     pmam_channelid_logs: int = 1287488941255299325
-    pmam_channelid_modmail: int = 969790418394964019
+    pmam_channelid_modmail: int = 1287489528176709752
     pmam_channelid_modbots: int = 1287488941255299325
     pmam_messageid_verify: int = 1287488894769696800
     pmam_admin_id: int = 1261420793779191880
@@ -198,17 +198,24 @@ def pmam_check(ctx: commands.Context) -> bool:
         return ctx.author.guild.id == pmam_guild_id
     return ctx.user.guild.id == pmam_guild_id
 
-def pmam_admin(ctx: commands.Context) -> bool:
+def pmam_admin(ctx: typing.Union[commands.Context, discord.Interaction]) -> bool:
     """Checks if a PMAM admin is running this command.
 
     Args:
-        ctx (commands.Context): Command context.
+        ctx (commands.Context, optional): Command context. Defaults to None.
+        interaction (discord.Interaction, optional): Interaction context. Defaults to None.
 
     Returns:
-        bool: Whether the check passed or not.
+        bool: Whether the user that executed the command is an admin or not.
     """
-    if discord.utils.get(ctx.guild.roles, id=pmam_admin_id) in ctx.author.roles:
+    if isinstance(ctx, commands.Context):
+        user_roles = ctx.author.roles
+    else:
+        user_roles = ctx.user.roles
+    
+    if discord.utils.get(ctx.guild.roles, id=pmam_admin_id) in user_roles:
         return True
+    
     return False
 
 def check_steam_games(link):
