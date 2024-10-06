@@ -192,7 +192,7 @@ async def on_member_remove(member):
 
 @bot.event #! REWORK
 async def on_message_delete(message):
-    if message.author.bot and message.guild.id != pmam_guildid:
+    if message.author.bot or message.guild.id != pmam_guildid:
         return
     
     if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
