@@ -340,7 +340,7 @@ async def on_message_delete(message: discord.Message):
         timestamp = datetime.datetime.now(),
         description = f"**File(s) sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\nFile(s) are attached below..."
     )
-    deleted_attachment_embed.set_author(name=f"{message.author.display_name}#{message.author.discriminator}", icon_url=message.author.display_avatar.url)
+    deleted_attachment_embed.set_author(name=f"{message.author.display_name}", icon_url=message.author.display_avatar.url)
     deleted_attachment_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
     await channel.send(embed=deleted_attachment_embed)
     log(f"File(s) sent by {message.author} deleted in {message.channel.name}")
@@ -353,7 +353,7 @@ async def on_message_delete(message: discord.Message):
             os.remove(attachment.replace(".7z", "")) # Remove the original non-archived file and keep the 7z
         else:
             await channel.send(file=discord.File(attachment))
-            log(f"Send {attachment} to logs channel.")
+            log(f"Sent {attachment} to logs channel.")
         
         if ".7z" in attachment: os.remove(attachment.replace(".7z", "")) # Remove the original non-archived file
         os.remove(attachment) # Remove the original uploaded file
