@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
-import os, datetime, requests, asyncio, traceback, py7zr, threading, typing
+import os, datetime, requests, asyncio, traceback, py7zr, threading, typing, io
 from dotenv import load_dotenv
 
 from logger import setupLogging, log
@@ -739,24 +739,173 @@ async def restart(ctx: commands.Context):
     await ctx.send("Restarting, good bye!")
     await bot.close()
 
+def ByteAttachmentsToFiles(byte_list: list[bytes, str]) -> typing.List[discord.File]:
+    """Turns a list of the bytes of a attachment with the original attachment file name into a discord.File.
+
+    Args:
+        byte_list (list[bytes, str]): A list that contains a list pairs of the attachments bytes and original attachment file name.
+
+    Returns:
+        typing.List[discord.File]: The list of converted discord.File.
+    """
+    attachments = []
+    for fb in byte_list:
+        attachments.append(discord.File(io.BytesIO(fb[0]), fb[1]))
+    return attachments
+
+class ModMailModal(discord.ui.Modal, title='Send ModMail Message'):
+    def __init__(self, member: discord.Member, attachments: typing.List[discord.Attachment]):
+        self.member = member
+        self.attachments = attachments
+        super().__init__()
+
+        self.message = discord.ui.TextInput(
+            label = 'Message You Want To Send',
+            style = discord.TextStyle.long,
+            placeholder = 'Insert yapping here...',
+            required = False,
+            min_length= 0,
+            max_length = 1950, # Max message size for bot is 2000, but the heading sent with the message needs to be accounted for.
+        )
+        self.add_item(self.message)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Check if user is in server
+        if bot.get_user(self.member.id) == None:
+            await interaction.response.send_message(f"Could not find user {self.member}!", ephemeral=True)
+            return
+        
+        attachments = []
+        # Convert and replace each discord.Attachment in the provided attachments with the bytes of each attachment so they can be send multiple times.
+        for i, attachment in enumerate(self.attachments):
+            file_bytes: bytes = None
+            # Some file types on Discord's servers aren't cached or the attachment can't be cached, so getting the attachment's cache might fail.
+            # Instead use without the cache if it fails.
+            try:
+                file_bytes = await attachment.read(use_cached=True)
+            except:
+                file_bytes = await attachment.read()
+            attachments.append([file_bytes, attachment.filename])
+        
+        await bot.get_user(self.member.id).send(f"Message from the PMAM Moderation Team:\n ```{self.message.value}```", files=ByteAttachmentsToFiles(attachments))
+        await interaction.response.send_message(f"Message has been sent to {self.member.name}!", ephemeral=True)
+
+        modmail_embed = discord.Embed(
+            color = 0xff9b00,
+            timestamp = datetime.datetime.now(),
+            description = f"**ModMail message sent by <@!{interaction.user.id}> to <@!{self.member.id}>**\n{self.message}\n{'Sent file(s) are attached below...' if self.attachments != [] else ''}"
+        )
+        modmail_embed.set_author(name=f"{interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
+        modmail_embed.set_footer(text=f"Author: {interaction.user.id} | Interaction ID: {interaction.id}")
+        await bot.get_channel(pmam_channelid_logs).send(embed=modmail_embed)
+        if self.attachments != []: await bot.get_channel(pmam_channelid_logs).send(files=ByteAttachmentsToFiles(attachments))
+
+        log(f"ModMail message was sent by {interaction.user.name} to member {self.member.name}.")
+        log(f"Message sent:\n{self.message}")
+        log(f"Attachments: {self.attachments}")
+
+    async def on_error(self, interaction: discord.Interaction, error: Exception):
+        await interaction.response.send_message('Congrats! You broke this interaction somehow. DM to target user was not send. Tell Orsell that this broke.', ephemeral=True)
+
+        error_msg = '\nAn error occurred with the bot!'\
+                    f'\nError details: {error}'
+        error_msg_traceback = f'\nFull traceback:\n{traceback.format_exc()}'
+        
+        log(error_msg + error_msg_traceback, log_level=2)
+
+        # Notify mods and admins the bot did not work correctly
+        if len(error_msg + error_msg_traceback) > 2000:
+            await bot.get_channel(pmam_channelid_modbots).send(
+                error_msg +
+                '\nFull traceback is too big to send!'\
+                '\nCheck the bot\'s logs for the full error!',
+            )
+            return
+        await bot.get_channel(pmam_channelid_modbots).send(error_msg + error_msg_traceback)
+
 @bot.tree.command()
 @app_commands.check(pmam_check)
 @app_commands.check(pmam_admin)
-async def reply(interaction: discord.Interaction, member: discord.Member, *, message: str):
-    """Anomalously sends a DM to a select user.
+async def modmail(
+    interaction: discord.Integration,
+    *,
+    member: discord.Member,
+    attachment1: discord.Attachment = None,
+    attachment2: discord.Attachment = None,
+    attachment3: discord.Attachment = None,
+    attachment4: discord.Attachment = None,
+    attachment5: discord.Attachment = None,
+    attachment6: discord.Attachment = None,
+    attachment7: discord.Attachment = None,
+    attachment8: discord.Attachment = None,
+    attachment9: discord.Attachment = None,
+    attachment10: discord.Attachment = None
+    ):
+    """Anomalously sends a message to a select user using the ModMail system.
 
     Args:
         interaction (discord.Interaction): Interaction context.
-        user (discord.Member): Member to send DM to.
+        attachment1-9 (discord.Attachment): Attachments to send to user. Only ten can be sent.
+    """
+    # Group together all attachment parameters into a list.
+    attachments = [
+        attachment1, attachment2, attachment3, attachment4,
+        attachment5, attachment6, attachment7, attachment8,
+        attachment9, attachment10
+    ]
+    # Filter out all the attachment parameters that weren't defined and keep the ones that were.
+    attachments = list(filter(lambda x: isinstance(x, discord.Attachment), attachments))
+    await interaction.response.send_modal(ModMailModal(member=member, attachments=attachments))
+
+@bot.command()
+@commands.check(pmam_admin)
+async def modmail(ctx: commands.Context, member: discord.Member, *, message: str = ""):
+    """Anomalously sends a message to a select user using the ModMail system.
+
+    Args:
+        interaction (discord.Interaction): Interaction context.
+        user (discord.Member): Member to send message to.
         message (str): Message to send to member.
     """
-
+    # Check if user is in server
     if bot.get_user(member.id) == None:
-        await interaction.response.send_message(f"Could not find user {member}!", ephemeral=True)
+        await ctx.reply(f"Could not find user {member}!", delete_after=3)
         return
-      
-    await bot.get_user(member.id).send(f"From the PMAM Moderation Team:\n\n {message}")
-    await interaction.response.send_message(f"DM has been sent to {member.name}!", ephemeral=True)
+
+    if len(message) > 1950:
+        await ctx.reply(f"Message exceeds 1950 characters!", delete_after=3)
+        return
+
+    attachments = []
+    # Convert and replace each discord.Attachment in the provided attachments with the bytes of each attachment so they can be send multiple times.
+    for i, attachment in enumerate(ctx.message.attachments):
+        file_bytes: bytes = None
+        # Some file types on Discord's servers aren't cached or the attachment can't be cached, so getting the attachment's cache might fail.
+        # Instead use without the cache if it fails.
+        try:
+            file_bytes = await attachment.read(use_cached=True)
+        except:
+            file_bytes = await attachment.read()
+        attachments.append([file_bytes, attachment.filename])
+    
+    await bot.get_user(member.id).send(f"Message from the PMAM Moderation Team:\n ```{message}```", files=ByteAttachmentsToFiles(attachments))
+    await ctx.reply(f"Message has been sent to {member.name}!", delete_after=3)
+
+    modmail_embed = discord.Embed(
+        color = 0xff9b00,
+        timestamp = datetime.datetime.now(),
+        description = f"**ModMail message sent by <@!{ctx.author.id}> to <@!{member.id}>**\n{message}\n{'Sent file(s) are attached below...' if ctx.message.attachments != [] else ''}"
+    )
+    modmail_embed.set_author(name=f"{ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
+    modmail_embed.set_footer(text=f"Author: {ctx.author.id} | Message ID: {ctx.message.id}")
+    await bot.get_channel(pmam_channelid_logs).send(embed=modmail_embed)
+    if ctx.message.attachments != []: await bot.get_channel(pmam_channelid_logs).send(files=ByteAttachmentsToFiles(attachments))
+
+    log(f"ModMail message was sent by {ctx.author.name} to member {member.name}.")
+    log(f"Message sent:\n{message}")
+    log(f"Attachments: {ctx.message.attachments}")
+    
+
 
 setupLogging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)
