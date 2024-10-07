@@ -463,7 +463,7 @@ async def purge(ctx: commands.Context, number: int):
     await ctx.send(f"Purged `{number}` messages!", delete_after=2)
     await channel.send(file=discord.File("./deleted.txt"))
 
-@bot.hybrid_command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx: commands.Context):
     time = datetime.datetime.now(tz=bot.tz)
