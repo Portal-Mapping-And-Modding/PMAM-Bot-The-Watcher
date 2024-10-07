@@ -10,7 +10,7 @@ if os.name != "nt": # Only need to import this for Linux
         pass
 
 tz = datetime.datetime.now().astimezone().tzinfo
-now = datetime.datetime.now(tz)
+now = datetime.datetime.now(tz=tz)
 formatted_time = now.strftime("%d-%m-%Y %H:%M:%S")
 
 def setupLogging(base_path: str) -> None:

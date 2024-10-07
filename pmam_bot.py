@@ -97,7 +97,7 @@ class PMAMBot(commands.Bot):
         log("Checking for any deleted_files for 30 days old...")
         if os.path.exists("deleted_files"):
             for file in os.listdir("deleted_files"):
-                if (datetime.datetime.now() - datetime.datetime.fromtimestamp(os.path.getmtime(f'deleted_files/{file}'))) > datetime.timedelta(days=30):
+                if (datetime.datetime.now(tz=self.tz) - datetime.datetime.fromtimestamp(os.path.getmtime(f'deleted_files/{file}'))) > datetime.timedelta(days=30):
                     os.remove(f'deleted_files/{file}')
                     log(f"Removed {file}.")
         else:
@@ -252,7 +252,7 @@ async def on_member_join(member: discord.Member):
         return
 
     account_time = member.created_at
-    age = datetime.datetime.now(datetime.timezone.utc) - account_time
+    age = datetime.datetime.now(tz=datetime.timezone.utc) - account_time
 
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(title = "Member joined!",color=discord.Color.green())
@@ -267,7 +267,7 @@ async def on_member_remove(member: discord.Member):
         return
 
     account_time = member.created_at
-    age = datetime.datetime.now(datetime.timezone.utc) - account_time
+    age = datetime.datetime.now(tz=datetime.timezone.utc) - account_time
 
     channel = bot.get_channel(pmam_channelid_logs)
     embed = discord.Embed(title = "Member left!",color=discord.Color.red())
@@ -293,7 +293,7 @@ async def on_message_delete(message: discord.Message):
         if len(message.content) > 1024: message.content = message.content[:995] + "\nMore than 1024 characters..."
         message_embed = discord.Embed(
             color = 0xff470f,
-            timestamp = datetime.datetime.now(),
+            timestamp = datetime.datetime.now(tz=datetime.timezone.utc),
             description = f"**Message sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\n{message.content}"
         )
         message_embed.set_author(name = f"{message.author.display_name}#{message.author.discriminator}", icon_url = message.author.display_avatar.url)
@@ -337,7 +337,7 @@ async def on_message_delete(message: discord.Message):
 
     deleted_attachment_embed = discord.Embed(
         color = 0xff470f,
-        timestamp = datetime.datetime.now(),
+        timestamp = datetime.datetime.now(tz=datetime.timezone.utc),
         description = f"**File(s) sent by <@!{message.author.id}> deleted in <#{message.channel.id}>**\nFile(s) are attached below..."
     )
     deleted_attachment_embed.set_author(name=f"{message.author.display_name}", icon_url=message.author.display_avatar.url)
@@ -370,7 +370,7 @@ async def on_message_edit(before: discord.Message, after: discord.Message):
     if len(after.content) > 1024: after.content = after.content[:995] + "\nMore than 1024 characters..."
     
     channel = bot.get_channel(pmam_channelid_logs)
-    embed = discord.Embed(color=0x307dd5, timestamp=datetime.datetime.now(), description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
+    embed = discord.Embed(color=0x307dd5, timestamp=datetime.datetime.now(tz=datetime.timezone.utc), description=f"**Message edited in <#{before.channel.id}>** [Jump to message]({after.jump_url})")
     embed.set_author(name=f"{before.author.display_name}", icon_url=before.author.display_avatar.url)
     embed.add_field(name="Before", value=before.content, inline=False)
     embed.add_field(name="After", value=after.content, inline=False)
@@ -383,7 +383,7 @@ async def on_message(message: discord.Message):
         await bot.process_commands(message)
         return
 
-    if message.author.id in bot.dm_cooldown.keys() and bot.dm_cooldown[message.author.id] > datetime.datetime.now().second:
+    if message.author.id in bot.dm_cooldown.keys() and bot.dm_cooldown[message.author.id] > datetime.datetime.now(tz=datetime.timezone.utc).second:
         await message.channel.send(f"DM messaging is on cooldown for 15 seconds!")
         return
 
@@ -395,7 +395,7 @@ async def on_message(message: discord.Message):
     embed.set_thumbnail(url=(message.author.display_avatar.url))
     embed.add_field(name="Message:", value=message.content, inline=False)
     
-    bot.dm_cooldown[message.author.id] = datetime.datetime.now().second + 15
+    bot.dm_cooldown[message.author.id] = datetime.datetime.now(tz=datetime.timezone.utc).second + 15
     await channel.send(embed=embed)    
 
 @bot.command(aliases = ['id_check','check_id'])
@@ -406,7 +406,7 @@ async def _id_check(ctx: commands.Context, user: discord.Member = None):
         await ctx.send("Invalid ID/user!", delete_after=3)
         return
     
-    time = datetime.datetime.now(tz=bot.tz)
+    time = datetime.datetime.now(tz=tz=datetime.timezone.utc)
     account_time = user.created_at
     age = time - account_time
     if age.total_seconds() < 259200:
@@ -422,9 +422,9 @@ async def _id_check(ctx: commands.Context, user: discord.Member = None):
     
     await ctx.send(embed=embed)
 
-@bot.hybrid_command()
-async def membercount(ctx: commands.Context):
-    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=bot.tz))
+@bot.tree.command()
+async def membercount(interaction: discord.Interaction):
+    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=tz=datetime.timezone.utc))
     embed.add_field(name="Members", value=ctx.guild.member_count)
     await ctx.send(embed=embed)
 
@@ -466,7 +466,7 @@ async def purge(ctx: commands.Context, number: int):
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx: commands.Context):
-    time = datetime.datetime.now(tz=bot.tz)
+    time = datetime.datetime.now(tz=tz=datetime.timezone.utc)
     account_time = ctx.author.created_at
     age = time - account_time
     channel = bot.get_channel(pmam_channelid_logs)
@@ -595,7 +595,7 @@ async def mass_id_check(ctx: commands.Context):
     await channel.send(embed=em1)
     for i in bot.guilds[0].humans:
         if len(i.roles) == 1:
-            time = datetime.datetime.now(datetime.timezone.utc)
+            time = datetime.datetime.now(tz=datetime.timezone.utc)
             account_time = i.created_at
             age = time - account_time
             embed = discord.Embed(title = f"{i.name}#{i.discriminator}", color=discord.Color.blue())
@@ -792,7 +792,7 @@ class ModMailModal(discord.ui.Modal, title='Send ModMail Message'):
 
         modmail_embed = discord.Embed(
             color = 0xff9b00,
-            timestamp = datetime.datetime.now(),
+            timestamp = datetime.datetime.now(tz=datetime.timezone.utc),
             description = f"**ModMail message sent by <@!{interaction.user.id}> to <@!{self.member.id}>**\n{self.message}\n{'Sent file(s) are attached below...' if self.attachments != [] else ''}"
         )
         modmail_embed.set_author(name=f"{interaction.user.display_name}", icon_url=interaction.user.display_avatar.url)
@@ -893,7 +893,7 @@ async def modmail(ctx: commands.Context, member: discord.Member, *, message: str
 
     modmail_embed = discord.Embed(
         color = 0xff9b00,
-        timestamp = datetime.datetime.now(),
+        timestamp = datetime.datetime.now(tz=datetime.timezone.utc),
         description = f"**ModMail message sent by <@!{ctx.author.id}> to <@!{member.id}>**\n{message}\n{'Sent file(s) are attached below...' if ctx.message.attachments != [] else ''}"
     )
     modmail_embed.set_author(name=f"{ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
