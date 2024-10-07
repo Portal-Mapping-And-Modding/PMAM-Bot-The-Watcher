@@ -406,7 +406,7 @@ async def _id_check(ctx: commands.Context, user: discord.Member = None):
         await ctx.send("Invalid ID/user!", delete_after=3)
         return
     
-    time = datetime.datetime.now(tz=tz=datetime.timezone.utc)
+    time = datetime.datetime.now(tz=datetime.timezone.utc)
     account_time = user.created_at
     age = time - account_time
     if age.total_seconds() < 259200:
@@ -424,9 +424,9 @@ async def _id_check(ctx: commands.Context, user: discord.Member = None):
 
 @bot.tree.command()
 async def membercount(interaction: discord.Interaction):
-    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=tz=datetime.timezone.utc))
-    embed.add_field(name="Members", value=ctx.guild.member_count)
-    await ctx.send(embed=embed)
+    embed = discord.Embed(color=0x307dd4, timestamp=datetime.datetime.now(tz=datetime.timezone.utc))
+    embed.add_field(name="Members 🤖", value=interaction.guild.member_count)
+    await interaction.response.send_message(embed=embed)
 
 @bot.command()
 @commands.has_permissions(ban_members=True)
@@ -466,7 +466,7 @@ async def purge(ctx: commands.Context, number: int):
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx: commands.Context):
-    time = datetime.datetime.now(tz=tz=datetime.timezone.utc)
+    time = datetime.datetime.now(tz=datetime.timezone.utc)
     account_time = ctx.author.created_at
     age = time - account_time
     channel = bot.get_channel(pmam_channelid_logs)
