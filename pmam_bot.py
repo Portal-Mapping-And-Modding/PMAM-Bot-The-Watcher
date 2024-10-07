@@ -329,7 +329,7 @@ async def purge(ctx: commands.Context, number: int):
     await channel.send(file=discord.File("./deleted.txt"))
 
 
-@bot.hybrid_command()
+@bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx):
     time = datetime.datetime.now(datetime.timezone.utc)
