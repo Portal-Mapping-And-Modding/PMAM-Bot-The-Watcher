@@ -582,7 +582,7 @@ async def mutual_friends(ctx: commands.Context, link1: str, link2: str):
         else:
             await ctx.send(f"Mutual friends list: {', '.join(mutual)}")
     except Exception as e:
-        await ctx.send("An error occured!")
+        await ctx.send("An error occurred!")
         log(e, 2)
         raise e
 
@@ -725,7 +725,7 @@ async def ping(interaction: discord.Interaction):
     ping_embed = discord.Embed(
         title="Pong!",
         description=f'**Latency: {round((bot.latency * 1000), 2)} ms**',
-        colour=discord.Colour.brand_green())
+        color=discord.Color.brand_green())
     ping_thumbnail = discord.File(f"{os.getcwd() + os.sep}images{os.sep}ping_pong.png", filename="ping_thumbnail.png")
     ping_embed.set_thumbnail(url="attachment://ping_thumbnail.png")
     await interaction.followup.send(file=ping_thumbnail, embed=ping_embed)

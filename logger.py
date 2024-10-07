@@ -19,7 +19,7 @@ def setupLogging(base_path: str) -> None:
     Args:
         base_path (str): The base path of the bot, should target "src".
     """
-    log_path = os.path.join(base_path, "Logs")
+    log_path = os.path.join(base_path, "logs")
 
     if not os.path.exists(log_path):
         os.mkdir(log_path)
