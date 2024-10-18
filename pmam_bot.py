@@ -10,7 +10,6 @@ from logger import setupLogging, log
 load_dotenv() # Get environment variables from .env file.
 if os.getenv('TEST') == "1":
     token: str = os.getenv('TEST_TOKEN')
-    pmam_userid_robot: int = 760644678205833256
     pmam_roleid_robot: int = 1286723072975569029
     pmam_guild_id: int = 969790418394964019
     pmam_channelid_logs: int = 1287488941255299325
@@ -20,7 +19,6 @@ if os.getenv('TEST') == "1":
     pmam_admin_id: int = 1261420793779191880
 else:
     token: str = os.getenv('TOKEN')
-    pmam_userid_robot: int = 973750292074090506
     pmam_roleid_robot: int = 1001936969326133371
     pmam_guild_id: int = 830239808596606976
     pmam_channelid_logs: int = 882296490314321961
