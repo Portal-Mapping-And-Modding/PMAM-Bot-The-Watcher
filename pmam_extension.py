@@ -33,7 +33,7 @@ class Extension(commands.Cog):
         
         if (("https://steamcommunity.com" in message.content) and ("steam://openurl/" not in message.content) and (message.channel.id in pmam_showcasing_channelids)):
             link_prefix = next((link_prefix for link_prefix in link_prefixs if link_prefix in  message.content), None)
-            thread = await message.create_thread(name = f"{message.author.display_name}'s map")
+            thread = await message.create_thread(name = f"{message.author.display_name}'s Map")
             await thread.send(
                 f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{message.content.removeprefix(link_prefix)}"
             )
