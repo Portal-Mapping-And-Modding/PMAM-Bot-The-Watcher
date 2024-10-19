@@ -91,8 +91,8 @@ class PMAMBot(commands.Bot):
         # Start the auto restarting for the bot and check if any local deleted_files are over a month old.
         self.restart.start()
                 
-        # Check if there are kept deleted_files over a 30 days old, delete if they are.
-        log("Checking for any deleted_files for 30 days old...")
+        # Check if there are kept deleted_files over 30 days old, delete if they are.
+        log("Checking for any deleted_files over 30 days old...")
         if os.path.exists("deleted_files"):
             for file in os.listdir("deleted_files"):
                 if (datetime.datetime.now(tz=self.tz) - datetime.datetime.fromtimestamp(os.path.getmtime(f'deleted_files/{file}'))) > datetime.timedelta(days=30):
