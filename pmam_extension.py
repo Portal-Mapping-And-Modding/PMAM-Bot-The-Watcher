@@ -12,7 +12,7 @@ pmam_emoji_no: str = "<:vote_no:975946731202183230>"
 starboard_reactions_needed: int = 5
 
 starboard_emoji_id: int = 1081025872175308901 #emoji ID used for starboard
-link_prefixs: typing.List[str] = ["https://steamcommunity.com/sharedfiles/filedetails/", "https://steamcommunity.com/workshop/filedetails/"]
+link_prefixs: typing.List[str] = ["https://steamcommunity.com/sharedfiles/filedetails/", "https://steamcommunity.com/workshop/filedetails/", "https://steamcommunity.com/sharedfiles/itemedittext/"]
 
 class Extension(commands.Cog):
     def __init__(self, bot: commands.Bot):
