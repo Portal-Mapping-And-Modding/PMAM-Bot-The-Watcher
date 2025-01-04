@@ -4,7 +4,6 @@ from discord.ext import commands
 from logger import log
 
 pmam_channelid_starboard: int = 1192917950001315980
-pmam_banned_starboard_channelids: int = [1120154927528951828, 842528375138811916, 1324898709934309407] # #off-topic, #no-microphone1, #no-microphone2
 pmam_vote_channelids: typing.List[int] = [1005658147861573642, 1147624721156948068] # #moderator-discussion and #basement-area
 pmam_showcasing_channelids: typing.List[int] = [922653836626243654, 941813875538538627] #📢┃finished-map-links and #🎮┃playtesting
 pmam_emoji_yes: str = "<:vote_yes:975946668379889684>"
@@ -43,7 +42,7 @@ class Extension(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, ctx: commands.Context):
         # Check if the emoji added is the starboard emoji.
-        if (ctx.emoji.id != starboard_emoji_id) or (ctx.channel.id in pmam_banned_starboard_channelids):
+        if ctx.emoji.id != starboard_emoji_id:
             return
         
         channel_starboard: discord.TextChannel = self.bot.get_channel(pmam_channelid_starboard)
