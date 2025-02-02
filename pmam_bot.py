@@ -477,12 +477,20 @@ async def verify(ctx: commands.Context):
         f.close()
             
     if age.days > 450:
-        role = discord.utils.get(ctx.author.guild.roles, id=894351178702397520)
-        if role in ctx.author.roles:
-            await ctx.send('You are already verified!', delete_after=2)
+        roles = [
+                    discord.utils.get(ctx.author.guild.roles, id = 894351178702397520),
+                    discord.utils.get(ctx.author.guild.roles, id = 1261327532934959186),
+                    discord.utils.get(ctx.author.guild.roles, id = 1261328505367695360),
+                    discord.utils.get(ctx.author.guild.roles, id = 1261329668561178756),
+                    discord.utils.get(ctx.author.guild.roles, id = 1261330263099707503),
+                    discord.utils.get(ctx.author.guild.roles, id = 1261330725010149486),
+                ]
+        if any(elem in ctx.author.roles for elem in roles):
+            await ctx.send('You are already verified!')
         else:
-            await ctx.send("Verification successful!", delete_after=2)
-            await ctx.author.add_roles(role)
+            await ctx.send("Verification successful!")
+            await asyncio.sleep(1)
+            await ctx.author.add_roles(roles[0])
             await asyncio.sleep(1)
             await ctx.channel.purge(limit=1)
     else:
