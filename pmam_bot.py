@@ -11,6 +11,7 @@ load_dotenv() # Get environment variables from .env file.
 if os.getenv('TEST') == "1":
     token: str = os.getenv('TEST_TOKEN')
     pmam_roleid_robot: int = 1286723072975569029
+    pmam_roleid_levels: int = [1261420793779191880]
     pmam_guild_id: int = 969790418394964019
     pmam_channelid_logs: int = 1287488941255299325
     pmam_channelid_modmail: int = 1287489528176709752
@@ -20,6 +21,14 @@ if os.getenv('TEST') == "1":
 else:
     token: str = os.getenv('TOKEN')
     pmam_roleid_robot: int = 1001936969326133371
+    pmam_roleid_levels: int = [
+        894351178702397520,     # Control Group
+        1261327532934959186,    # Test Subject
+        261328505367695360,     # Testing Robot
+        1261329668561178756,    # Military Android
+        1261330263099707503,    # Scientist
+        1261330725010149486     # No-life User
+    ]
     pmam_guild_id: int = 830239808596606976
     pmam_channelid_logs: int = 882296490314321961
     pmam_channelid_modmail: int = 1265721193885863936
@@ -464,6 +473,17 @@ async def purge(ctx: commands.Context, number: int):
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
 async def verify(ctx: commands.Context):
+    # Don't run in servers that aren't PMAM.
+    if (ctx.guild.id != pmam_guild_id):
+        return
+
+    # Block people from verifying again.
+    for role in ctx.author.roles:
+        if (role.id in pmam_roleid_levels):
+            await ctx.send('You are already verified!', delete_after=3)
+            log(f'User, "{ctx.author.name}", issued "?verify" while already verified.', 1)
+            return
+
     time = datetime.datetime.now(tz=datetime.timezone.utc)
     account_time = ctx.author.created_at
     age = time - account_time
@@ -472,27 +492,17 @@ async def verify(ctx: commands.Context):
         banned_ids = f.read()
         if str(ctx.author.id) in banned_ids:
             await ctx.send("The moderator team has blocked you from using the verification command! Please ping an online mod/admin to sort things out.", delete_after=5)
-            f.close()
+            mod_channel = bot.get_channel(pmam_channelid_modbots)
+            await mod_channel.send(f'Blocked verification for user: {ctx.author.name}!')
+            log(f'Blocked verification for user "{ctx.author.name}"!', 1)
             return
-        f.close()
-            
+    
+    # Check if the account is new or not. To prevent newly created alts.
     if age.days > 450:
-        roles = [
-                    discord.utils.get(ctx.author.guild.roles, id = 894351178702397520),
-                    discord.utils.get(ctx.author.guild.roles, id = 1261327532934959186),
-                    discord.utils.get(ctx.author.guild.roles, id = 1261328505367695360),
-                    discord.utils.get(ctx.author.guild.roles, id = 1261329668561178756),
-                    discord.utils.get(ctx.author.guild.roles, id = 1261330263099707503),
-                    discord.utils.get(ctx.author.guild.roles, id = 1261330725010149486),
-                ]
-        if any(elem in ctx.author.roles for elem in roles):
-            await ctx.send('You are already verified!')
-        else:
-            await ctx.send("Verification successful!")
-            await asyncio.sleep(1)
-            await ctx.author.add_roles(roles[0])
-            await asyncio.sleep(1)
-            await ctx.channel.purge(limit=1)
+        await ctx.send("Verification successful!")
+        await asyncio.sleep(1)
+        await ctx.author.add_roles(discord.utils.get(ctx.author.guild.roles, pmam_roleid_levels[0]), "Verified/Joined PMAM")
+        await ctx.channel.purge(limit=1)
     else:
         embed = discord.Embed(title = "`?verify` command failed!", color=discord.Color.red())
         embed.add_field(name="User", value=f"{ctx.author.display_name}#{ctx.author.discriminator}", inline=False)
@@ -500,6 +510,8 @@ async def verify(ctx: commands.Context):
         embed.set_thumbnail(url=ctx.author.display_avatar.url)
         await channel.send(embed=embed)
         await ctx.send("Since your account is rather new you will need to connect your Steam account and then ping any online moderator.", delete_after=5)
+        await mod_channel.send(f'Recently new account blocked from verification! User: "{ctx.author.name}"')
+        log(f'Recently new account blocked from verification! User: "{ctx.author.name}"', 1)
 
 #@bot.command()
 #async def steamverify(ctx, steamlink = None):
