@@ -66,6 +66,7 @@ class Extension(commands.Cog):
                     if str(message.id) in content: return
                     f.write(f"{str(message.id)}\n")
 
+                # fix issue with codeblock markdown by escaping it
                 message = message.content.replace('`', '\\`')
                 if message.endswith('\\`'):
                     message = message + ' '
