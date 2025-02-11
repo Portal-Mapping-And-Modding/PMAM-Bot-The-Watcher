@@ -66,7 +66,9 @@ class Extension(commands.Cog):
                     if str(message.id) in content: return
                     f.write(f"{str(message.id)}\n")
 
-                message = message.content.replace('```', '\`\`\`')
+                message = message.content.replace('`', '\\`')
+                if message.endswith('\\`'):
+                    message = message + ' '
                 
                 starboard_embed = discord.Embed(
                     color = discord.Color.yellow(),
