@@ -11,7 +11,7 @@ pmam_guild_id: int = 830239808596606976 #originally 969790418394964019
 pmam_roleid_robot: int = 830240292183212042
 pmam_categorychannel_staff: int = 830243658204184617
 
-exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
+pmam_exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
     1047272745106423838,    # "off-topic-showcasing"
     830243614382227498,     # "help-modding"
     830243415009918996,     # "help-mapping"
@@ -80,7 +80,7 @@ class leveling_system(commands.Cog):
         if isinstance(message.channel, discord.DMChannel):
             return
 
-        if (message.guild.id != pmam_guild_id) or (message.author.bot) or ((message.channel.id not in exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
+        if (message.guild.id != pmam_guild_id) or (message.author.bot) or ((message.channel.id not in pmam_exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
             return
 
         if message.author.id not in self.cooldowns.keys():
