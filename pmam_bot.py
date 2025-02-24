@@ -104,7 +104,7 @@ class PMAMBot(commands.Bot):
         log("Checking for any deleted_files over 30 days old...")
         if os.path.exists("deleted_files"):
             for file in os.listdir("deleted_files"):
-                if (datetime.datetime.now(tz=self.tz) - datetime.datetime.fromtimestamp(os.path.getmtime(f'deleted_files/{file}'))) > datetime.timedelta(days=30):
+                if ((datetime.datetime.now(tz=self.tz) - datetime.datetime.fromtimestamp(os.path.getmtime(f'deleted_files/{file}'), tz=self.tz))) > datetime.timedelta(days=30):
                     os.remove(f'deleted_files/{file}')
                     log(f"Removed {file}.")
         else:
