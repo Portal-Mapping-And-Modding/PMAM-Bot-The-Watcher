@@ -43,6 +43,7 @@ class Extension(commands.Cog):
             for i in range(len(steam_item_id)):
                 if not (steam_item_id[i] in "/?=" or steam_item_id.isalnum()): # Check if the current character is no longer part of the link
                     steam_item_id = steam_item_id[:i] # Strip away everything after the link
+                    break
             await thread.send(
                 f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{steam_item_id}"
             )
