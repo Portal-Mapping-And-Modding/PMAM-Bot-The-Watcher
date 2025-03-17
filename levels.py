@@ -1,15 +1,17 @@
 from io import BytesIO
-import discord, sqlite3, requests, datetime, typing
+import discord
+from discord import app_commands
+import sqlite3, requests, datetime, typing
 from discord.ext import commands, tasks
 from PIL import Image, ImageFont, ImageDraw
 
 from logger import log
 
-pmam_guildid: int = 830239808596606976 #originally 969790418394964019
+pmam_guild_id: int = 830239808596606976 #originally 969790418394964019
 pmam_roleid_robot: int = 830240292183212042
 pmam_categorychannel_staff: int = 830243658204184617
 
-exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
+pmam_exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
     1047272745106423838,    # "off-topic-showcasing"
     830243614382227498,     # "help-modding"
     830243415009918996,     # "help-mapping"
@@ -71,52 +73,50 @@ class leveling_system(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.cleanup.start()
         self.cooldowns = {} # EXP user cooldown list
-    
-    @tasks.loop(time=datetime.time(hour=23, minute=59, second=55, tzinfo=datetime.datetime.now().astimezone().tzinfo))
-    async def cleanup(self):
-        self.cooldowns = {}
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if isinstance(message.channel, discord.DMChannel):
             return
 
-        if (message.guild.id != pmam_guildid) or (message.author.bot) or ((message.channel.id not in exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
+        if (message.guild.id != pmam_guild_id) or (message.author.bot) or ((message.channel.id not in pmam_exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
             return
 
         if message.author.id not in self.cooldowns.keys():
-            self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now())
+            self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now(tz=datetime.timezone.utc))
         
-        if self.cooldowns[message.author.id] < datetime.datetime.timestamp(datetime.datetime.now()):
+        if self.cooldowns[message.author.id] < datetime.datetime.timestamp(datetime.datetime.now(tz=datetime.timezone.utc)):
             #! Reuse this function for future EXP timeout
             # if (message.author.id == int(os.getenv('THE_ID'))):
             #     if len(message.content.split()) > 20:
             #         add_exp(message.author.id, round(0.2), 1)
             #     else:
             #         add_exp(message.author.id, round(0.1, 1))
-            #     self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 50 #50 seconds cooldown
+            #     self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now(tz=self.bot.tz)) + 50 #50 seconds cooldown
             #     return
 
             if len(message.content.split()) > 20:
                 add_exp(message.author.id, 2)
             else:
                 add_exp(message.author.id, 1)
-            self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now()) + 15 #15 seconds cooldown 
+            self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now(tz=self.bot.tz)) + 15 #15 seconds cooldown 
    
     @commands.command()
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_role(pmam_roleid_robot)
-    async def addexp(self, ctx, user, amount):
+    async def addexp(self, ctx: commands.Context, user: discord.Member, amount: int):
+        if ctx.guild.fetch_member(user.id) == None:
+            await ctx.send("Invalid ID/user!", delete_after=3)
+            return
+        
         try:
-            if user.startswith("<"): #this allows mentions to be passed as this command input
-                user = user[2:-1]
-            user, amount = int(user), int(amount)
-            add_exp(user, amount)
-            embed = discord.Embed(color=discord.Color.green(),description = f"<:vote_yes:975946668379889684> ***Successfully added EXP!***") 
-        except Exception:
-            embed = discord.Embed(color=discord.Color.red(),description = "<:vote_no:975946731202183230> ***Adding EXP failed!***")
+            add_exp(user.id, amount)
+            embed = discord.Embed(color=discord.Color.green(), description="<:vote_yes:975946668379889684> ***Successfully added EXP!***") 
+        except Exception as e:
+            log(f"The command 'addexp' failed to execute. Below is the error that occurred:\n\n{e}", 2)
+            embed = discord.Embed(color=discord.Color.red(), description=f"<:vote_no:975946731202183230> ***Adding EXP failed! ***\n\n***ERROR:***\n```{e}```")
+            raise e
         
         await ctx.send(embed=embed)
     
@@ -142,70 +142,69 @@ class leveling_system(commands.Cog):
         #read from database
         connection = sqlite3.connect("database.db")
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM users WHERE id = ?", (user, ))
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user.id, ))
         connection.commit()
 
         result = cursor.fetchone()
 
         if result == None: #user is not in database
-            embed = discord.Embed(color=discord.Color.red(),description = "<:vote_no:975946731202183230> ***This user doesn't have any EXP***")
+            embed = discord.Embed(color=discord.Color.red(), description=f"<:vote_no:975946731202183230> ***`{user.name}` doesn't have any EXP***")
             await ctx.send(embed=embed)
             return
-        else:
-            connection = sqlite3.connect("database.db")
-            cursor = connection.cursor()
-            cursor.execute("SELECT row_number FROM (SELECT ROW_NUMBER () OVER ( ORDER BY exp DESC ) row_number, id, exp FROM users) WHERE id = ?;",(user, )) #this actually calculates the position of user in the leaderboard
-            connection.commit()
-            rank = cursor.fetchone()[0]
-            connection.close()
+        
+        connection = sqlite3.connect("database.db")
+        cursor = connection.cursor()
+        cursor.execute("SELECT row_number FROM (SELECT ROW_NUMBER () OVER ( ORDER BY exp DESC ) row_number, id, exp FROM users) WHERE id = ?;",(user, )) #this actually calculates the position of user in the leaderboard
+        connection.commit()
+        rank = cursor.fetchone()[0]
+        connection.close()
 
-            try:
+        try:
+            #await ctx.send(f"user {user} has {result[1]} EXP. Position: {rank}{user.name}{user.nick}{user.display_name}")
 
-                user_obj = await ctx.guild.fetch_member(user)
-                #await ctx.send(f"user {user_obj} has {result[1]} EXP. Position: {rank}{user_obj.name}{user_obj.nick}{user_obj.display_name}")
+            #yes I know this isn't great thing to do, but I want my code to be readable for future me/future The Watcher maintainer
+            if result[1] < 100: #control group
+                if level_roles_ids[0] not in (user_roles_ids := [i.id for i in user.roles]): 
+                    await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
+                    await user.add_roles(ctx.guild.get_role(level_roles_ids[0]))
+                generate_card(user, "0", rank, result[1])
+            
+            elif result[1] < 1000: #test subject
+                if level_roles_ids[1] not in (user_roles_ids := [i.id for i in user.roles]): #this if statement promotes user to next access level
+                    await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
+                    await user.add_roles(ctx.guild.get_role(level_roles_ids[1]))
+                generate_card(user, "1", rank, result[1])
+            
+            elif result[1] < 5000: #testing bot
+                if level_roles_ids[2] not in (user_roles_ids := [i.id for i in user.roles]):
+                    await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids))) #removing "old" roles and adding role that corresponds to EXP level
+                    await user.add_roles(ctx.guild.get_role(level_roles_ids[2]))
+                generate_card(user, "2", rank, result[1])
+            
+            elif result[1] < 10000: #military android
+                if level_roles_ids[3] not in (user_roles_ids := [i.id for i in user.roles]):
+                    await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
+                    await user.add_roles(ctx.guild.get_role(level_roles_ids[3]))
+                generate_card(user, "3", rank, result[1])
+            
+            elif result[1] < 70000: #scientist
+                if level_roles_ids[4] not in (user_roles_ids := [i.id for i in user.roles]):
+                    await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
+                    await user.add_roles(ctx.guild.get_role(level_roles_ids[4]))
+                generate_card(user, "4", rank, result[1])
+            
+            else: #no life user
+                if level_roles_ids[5] not in (user_roles_ids := [i.id for i in user.roles]):
+                    await user.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
+                    await user.add_roles(ctx.guild.get_role(level_roles_ids[5]))
+                generate_card(user, "5", rank, result[1])
 
-                #yes I know this isn't great thing to do, but I want my code to be readable for future me/future The Watcher maintainer
-                if result[1] < 100: #control group
-                    if level_roles_ids[0] not in (user_roles_ids := [i.id for i in user_obj.roles]): 
-                        await user_obj.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
-                        await user_obj.add_roles(ctx.guild.get_role(level_roles_ids[0]))
-                    generate_card(user_obj, "0", rank, result[1])
-                
-                elif result[1] < 1000: #test subject
-                    if level_roles_ids[1] not in (user_roles_ids := [i.id for i in user_obj.roles]): #this if statement promotes user to next access level
-                        await user_obj.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
-                        await user_obj.add_roles(ctx.guild.get_role(level_roles_ids[1]))
-                    generate_card(user_obj, "1", rank, result[1])
-                
-                elif result[1] < 5000: #testing bot
-                    if level_roles_ids[2] not in (user_roles_ids := [i.id for i in user_obj.roles]):
-                        await user_obj.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids))) #removing "old" roles and adding role that corresponds to EXP level
-                        await user_obj.add_roles(ctx.guild.get_role(level_roles_ids[2]))
-                    generate_card(user_obj, "2", rank, result[1])
-                
-                elif result[1] < 10000: #military android
-                    if level_roles_ids[3] not in (user_roles_ids := [i.id for i in user_obj.roles]):
-                        await user_obj.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
-                        await user_obj.add_roles(ctx.guild.get_role(level_roles_ids[3]))
-                    generate_card(user_obj, "3", rank, result[1])
-                
-                elif result[1] < 70000: #scientist
-                    if level_roles_ids[4] not in (user_roles_ids := [i.id for i in user_obj.roles]):
-                        await user_obj.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
-                        await user_obj.add_roles(ctx.guild.get_role(level_roles_ids[4]))
-                    generate_card(user_obj, "4", rank, result[1])
-                
-                else: #no life user
-                    if level_roles_ids[5] not in (user_roles_ids := [i.id for i in user_obj.roles]):
-                        await user_obj.remove_roles(ctx.guild.get_role(intersection(user_roles_ids, level_roles_ids)))
-                        await user_obj.add_roles(ctx.guild.get_role(level_roles_ids[5]))
-                    generate_card(user_obj, "5", rank, result[1])
-
-                await ctx.send(file = discord.File("card.png"))
-            except Exception as e:
-                log(f"Failed to generate EXP card: {e}", 2)
-                embed = discord.Embed(color=discord.Color.red(), description = "<:vote_no:975946731202183230> ***Failed to generate card***")
-                await ctx.send(embed=embed)
+            await ctx.send(file = discord.File("card.png"))
+        except Exception as e:
+            log(f"Failed to generate EXP card: {e}", 2)
+            embed = discord.Embed(color=discord.Color.red(), description="<:vote_no:975946731202183230> ***Failed to generate EXP card!***")
+            await ctx.send(embed=embed)
+            raise e
 
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
@@ -220,11 +219,11 @@ class leveling_system(commands.Cog):
         connection.commit()
         rank = 1
 
-        base_embed = discord.Embed(title="PMaM leaderboard",color=0xf9f02a)
+        base_embed = discord.Embed(title="PMaM Leaderboard", color=0xf9f02a)
         for i in cursor.fetchmany(10):
             try:
-                user_obj = await ctx.guild.fetch_member(i[0])
-                username = user_obj.global_name
+                user = await ctx.guild.fetch_member(i[0])
+                username = user.global_name
             except Exception:
                 username = str(i[0])
             base_embed.add_field(name=f"#{rank} {username}", value=f"{i[1]} EXP", inline=False)
@@ -236,6 +235,7 @@ class leveling_system(commands.Cog):
             rank = cursor.fetchone()[0]
         except Exception:
             rank = "you found super secret error!"
+        
         connection.close()
         
         thumbnail = discord.File("images/pmamlogo.png", "pmamlogo.png") #pmam icon

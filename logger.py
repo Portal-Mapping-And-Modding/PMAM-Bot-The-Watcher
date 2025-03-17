@@ -1,42 +1,54 @@
 import logging
-from logging import handlers
+import logging.handlers
 import os
 import colorama
 import datetime
-if os.name != "nt":
-    from cysystemd import journal
+if os.name != "nt": # Only need to import this for Linux
+    try:
+        from cysystemd import journal
+    except:
+        pass
 
-formatted_time = datetime.datetime.now(datetime.datetime.now().astimezone().tzinfo).strftime("%d-%m-%Y %H:%M:%S")
+tz = datetime.datetime.now().astimezone().tzinfo
+now = datetime.datetime.now(tz=tz)
+formatted_time = now.strftime("%d-%m-%Y %H:%M:%S")
 
-def setup_logging(base_path: str) -> None:
-    """Setup logging for the Discord Bot
+def setupLogging(base_path: str) -> None:
+    """Setup logging for the Discord Bot.
 
     Args:
-        base_path (str): The base path of the bot, should target "src"
+        base_path (str): The base path of the bot, should target "src".
     """
-    log_path = os.path.join(base_path, "Logs")
+    log_path = os.path.join(base_path, "logs")
 
     if not os.path.exists(log_path):
         os.mkdir(log_path)
 
-    # Setup colorama for Windows machines
+    # Setup colorama for Windows machines.
     if os.name == "nt":
         colorama.init(autoreset=True)
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    handler = logging.FileHandler(
-        filename = os.path.join(log_path, f"bot_log-({datetime.datetime.now().strftime('%d-%m-%Y %H-%M-%S')}).log"), # Log location
-        mode= "w", # Mode to write to the log
-        encoding = "utf-8", # Log encoding
+    handler = logging.handlers.TimedRotatingFileHandler(
+        filename = os.path.join(log_path, "bot_log.log"),
+        when = "D",
+        atTime = datetime.time(hour=0, minute=5, tzinfo=tz), # Log roll over will occur a little after the midnight when the bot restarts.
+        backupCount = 21, # 21 days/3 weeks worth of logs will be kept, each day the oldest one will be deleted.
+        encoding = "utf-8",
     )
     handler.setFormatter(logging.Formatter("[{asctime}] [{levelname:<8}] {name}: {message}", "%d-%m-%Y %H:%M:%S", style="{"))
     logger.addHandler(handler)
-    if os.name != "nt":
-        logger.addHandler(journal.JournaldLogHandler())
+    if os.name != "nt": # Add log handler for Linux's systemd journal system.
+        try:
+            logger.addHandler(journal.JournaldLogHandler())
+        except:
+            pass
+    
+    logging.info(f"\n\n----------------NEW BOT SESSION BEGIN: {formatted_time}----------------") # To separate new logs in the same day
 
-# A log function to both log to the log file and print to the console, printing to the console can be optional
+# A log function to both log to the log file and print to the console, printing to the console can be optional.
 def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """Logs a message to both the console and the log file.
     Printing to console can be optional. Defaults to INFO logging with console set to True.
@@ -54,15 +66,15 @@ def log(msg: str = "", log_level: int = 0, console: bool = True) -> None:
     """
 
     if log_level == 1:
-        if console: print(colorama.Fore.YELLOW + f'[{formatted_time}] WARN: {msg}')
-        logging.warn(msg)
+        if console: print(colorama.Fore.YELLOW + f'[{formatted_time}] WARN: {msg}' + colorama.Fore.WHITE)
+        logging.warning(msg)
         return
     elif log_level == 2:
-        if console: print(colorama.Fore.RED + f'[{formatted_time}] ERROR: {msg}')
+        if console: print(colorama.Fore.RED + f'[{formatted_time}] ERROR: {msg}' + colorama.Fore.WHITE)
         logging.error(msg)
         return
     elif log_level == 3:
-        if console: print(colorama.Fore.WHITE + colorama.Back.RED + f'[{formatted_time}] CRITICAL: {msg}')
+        if console: print(colorama.Fore.WHITE + colorama.Back.RED + f'[{formatted_time}] CRITICAL: {msg}' + colorama.Fore.WHITE)
         logging.critical(msg)
         return
 

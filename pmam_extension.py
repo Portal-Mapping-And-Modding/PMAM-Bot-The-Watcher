@@ -1,15 +1,24 @@
-import datetime, typing, re
+import os, datetime, typing, re
 import discord
 from discord.ext import commands
 from logger import log
 
-pmam_channelid_starboard: int = 1192917950001315980
-pmam_vote_channelids: typing.List[int] = [1005658147861573642, 1147624721156948068] # #moderator-discussion and #basement-area
-pmam_showcasing_channelids: typing.List[int] = [922653836626243654, 941813875538538627] #📢┃finished-map-links and #🎮┃playtesting
-pmam_emoji_yes: str = "<:vote_yes:975946668379889684>"
-pmam_emoji_abstain: str = "<:vote_abstain:975946602206363659>"
-pmam_emoji_no: str = "<:vote_no:975946731202183230>"
-starboard_reactions_needed: int = 5
+if os.getenv('TEST') == "1":
+    pmam_channelid_starboard: int = 1296927868156116992
+    pmam_vote_channelids: typing.List[int] = [1287488941255299325]
+    pmam_showcasing_channelids: typing.List[int] = [1296972883708346460]
+    pmam_emoji_yes: str = "<:vote_yes:1296964724319195188>"
+    pmam_emoji_abstain: str = "<:vote_abstain:1296964800982548511>"
+    pmam_emoji_no: str = "<:vote_no:1296964759916122207>"
+    starboard_reactions_needed: int = 1
+else:
+    pmam_channelid_starboard: int = 1192917950001315980
+    pmam_vote_channelids: typing.List[int] = [1005658147861573642, 1147624721156948068] # #moderator-discussion and #basement-area
+    pmam_showcasing_channelids: typing.List[int] = [922653836626243654, 941813875538538627] #📢┃finished-map-links and #🎮┃playtesting
+    pmam_emoji_yes: str = "<:vote_yes:975946668379889684>"
+    pmam_emoji_abstain: str = "<:vote_abstain:975946602206363659>"
+    pmam_emoji_no: str = "<:vote_no:975946731202183230>"
+    starboard_reactions_needed: int = 5
 
 starboard_emoji_id: int = 1081025872175308901 #emoji ID used for starboard
 link_prefixs: typing.List[str] = ["https://steamcommunity.com/sharedfiles/filedetails/", "https://steamcommunity.com/workshop/filedetails/", "https://steamcommunity.com/sharedfiles/itemedittext/"]
@@ -30,12 +39,17 @@ class Extension(commands.Cog):
         if (("https://steamcommunity.com" in message.content) and ("steam://openurl/" not in message.content) and (message.channel.id in pmam_showcasing_channelids)):
             link_prefix = next((link_prefix for link_prefix in link_prefixs if link_prefix in  message.content), None)
             thread = await message.create_thread(name = f"{message.author.display_name}'s Map")
+            steam_item_id: str = message.content.removeprefix(link_prefix)
+            for i in range(len(steam_item_id)):
+                if not (steam_item_id[i] in "/?=" or steam_item_id.isalnum()): # Check if the current character is no longer part of the link
+                    steam_item_id = steam_item_id[:i] # Strip away everything after the link
+                    break
             await thread.send(
-                f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{message.content.removeprefix(link_prefix)}"
+                f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{steam_item_id}"
             )
             log(f"Steam workshop map thread created:")
             log(f"\"{message.author.display_name}'s Map\": " \
-                f"https://electrovoyage.github.io/steamitem{message.content.removeprefix(link_prefix)}"
+                f"https://electrovoyage.github.io/steamitem{steam_item_id}"
             )
             log(f"Thread ID: {thread.id} Thread's Parent Channel: {thread.parent.name}")
     
