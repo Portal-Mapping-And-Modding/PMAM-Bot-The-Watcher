@@ -39,12 +39,17 @@ class Extension(commands.Cog):
         if (("https://steamcommunity.com" in message.content) and ("steam://openurl/" not in message.content) and (message.channel.id in pmam_showcasing_channelids)):
             link_prefix = next((link_prefix for link_prefix in link_prefixs if link_prefix in  message.content), None)
             thread = await message.create_thread(name = f"{message.author.display_name}'s Map")
+            steam_item_id: str = message.content.removeprefix(link_prefix)
+            for i in range(len(steam_item_id)):
+                if not (steam_item_id[i] in "/?=" or steam_item_id.isalnum()): # Check if the current character is no longer part of the link
+                    steam_item_id = steam_item_id[:i] # Strip away everything after the link
+                    break
             await thread.send(
-                f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{message.content.removeprefix(link_prefix)}"
+                f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{steam_item_id}"
             )
             log(f"Steam workshop map thread created:")
             log(f"\"{message.author.display_name}'s Map\": " \
-                f"https://electrovoyage.github.io/steamitem{message.content.removeprefix(link_prefix)}"
+                f"https://electrovoyage.github.io/steamitem{steam_item_id}"
             )
             log(f"Thread ID: {thread.id} Thread's Parent Channel: {thread.parent.name}")
     
