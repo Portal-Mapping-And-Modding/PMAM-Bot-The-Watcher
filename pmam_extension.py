@@ -79,6 +79,11 @@ class Extension(commands.Cog):
                     content = f.read()
                     if str(message.id) in content: return
                     f.write(f"{str(message.id)}\n")
+
+                # Prevent issues with codeblock markdown by escaping it.
+                message = message.content.replace('`', '\\`')
+                if message.endswith('\\`'):
+                    message = message + ' '
                 
                 starboard_embed = discord.Embed(
                     color = discord.Color.yellow(),
