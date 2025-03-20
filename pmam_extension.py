@@ -14,7 +14,7 @@ if os.getenv('TEST') == "1":
 else:
     pmam_channelid_starboard: int = 1192917950001315980
     pmam_vote_channelids: typing.List[int] = [1005658147861573642, 1147624721156948068] # #moderator-discussion and #basement-area
-    pmam_showcasing_channelids: typing.List[int] = [922653836626243654, 941813875538538627] #📢┃finished-map-links and #🎮┃playtesting
+    pmam_showcasing_channelids: typing.List[int] = [922653836626243654, 1352328855938924564, 941813875538538627] #📢┃finished-map-links (old), #📢┃finished-map-links (forum) and #🎮┃playtesting
     pmam_emoji_yes: str = "<:vote_yes:975946668379889684>"
     pmam_emoji_abstain: str = "<:vote_abstain:975946602206363659>"
     pmam_emoji_no: str = "<:vote_no:975946731202183230>"

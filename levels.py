@@ -19,7 +19,8 @@ pmam_exp_channels = [ # Individual channels which allow users to earn exp, any c
     830243544269717555,     # "help-assets"
     941813875538538627,     # "playtesting"
     830518892786876489,     # "showcasing"
-    922653836626243654,     # "finished-map-links"
+    922653836626243654,     # "finished-map-links" legacy
+    1352328855938924564,    # "finished-map-links" forum
     930548541607280731      # "tips"
 ] 
 
