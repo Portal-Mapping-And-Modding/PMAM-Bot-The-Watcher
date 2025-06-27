@@ -21,7 +21,8 @@ else:
     starboard_reactions_needed: int = 5
 
 starboard_emoji_id: int = 1081025872175308901 #emoji ID used for starboard
-link_prefixs: typing.List[str] = ["https://steamcommunity.com/sharedfiles/filedetails/", "https://steamcommunity.com/workshop/filedetails/", "https://steamcommunity.com/sharedfiles/itemedittext/"]
+link_pattern: re.Pattern[str] = re.compile(r'https:\/\/steamcommunity\.com\/(sharedfiles|workshop)\/(filedetails|itemedittext)\/?\?id=([0-9]+)')
+#link_prefixs: typing.List[str] = ["https://steamcommunity.com/sharedfiles/filedetails/", "https://steamcommunity.com/workshop/filedetails/", "https://steamcommunity.com/sharedfiles/itemedittext/"]
 
 class Extension(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -36,14 +37,10 @@ class Extension(commands.Cog):
             await message.add_reaction(pmam_emoji_no)
         
         # If a Steam Portal 2 workshop link is posted in certain channels, make a thread for it in that channel.
-        if (("https://steamcommunity.com" in message.content) and ("steam://openurl/" not in message.content) and (message.channel.id in pmam_showcasing_channelids)):
-            link_prefix = next((link_prefix for link_prefix in link_prefixs if link_prefix in  message.content), None)
+        match = re.match(link_pattern, message.content)
+        if ((match is not None) and ("https://electrovoyage.github.io/steamitem?id=" not in message.content) and (message.channel.id in pmam_showcasing_channelids)):
             thread = await message.create_thread(name = f"{message.author.display_name}'s Map")
-            steam_item_id: str = message.content.removeprefix(link_prefix)
-            for i in range(len(steam_item_id)):
-                if not (steam_item_id[i] in "/?=" or steam_item_id.isalnum()): # Check if the current character is no longer part of the link
-                    steam_item_id = steam_item_id[:i] # Strip away everything after the link
-                    break
+            steam_item_id: str = match.group(3)
             await thread.send(
                 f"Here is a link that will directly open Steam: https://electrovoyage.github.io/steamitem{steam_item_id}"
             )
