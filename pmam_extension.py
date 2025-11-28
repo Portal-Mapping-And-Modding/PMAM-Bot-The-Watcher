@@ -76,17 +76,28 @@ class Extension(commands.Cog):
                     content = f.read()
                     if str(message.id) in content: return
                     f.write(f"{str(message.id)}\n")
+                    
+                # This will only be true if message is forwarded    
+                was_forwarded: bool = message.reference and message.reference.type == discord.MessageReferenceType.forward
+                
+                # Instead of using the FORWARD message, use the FORWARDED 
+                # message_snapshots is a list but I have no idea in what
+                # case it will be longer than 1
+                content_message = message.message_snapshots[0] if was_forwarded else message
+                
+                # content_message is a partial copy of the FORWARDED message
+                # message is the FORWARD message
 
                 # Prevent issues with codeblock markdown by escaping it.
-                message = message.content.replace('`', '\\`')
-                if message.endswith('\\`'):
-                    message = message + ' '
+                content = message.content.replace('`', '\\`')
+                if content.endswith('\\`'):
+                    content += ' '
                 
                 starboard_embed = discord.Embed(
                     color = discord.Color.yellow(),
                     description = f"Message by <@!{message.author.id}> from <#{message.channel.id}>:\n\n" \
-                                  f'{f"```{message.content}```" if message.content != "" else ""}\n\n' \
-                                  f"Original message: {message.jump_url}",
+                                  f'{f"```{content_message.content}```" if content_message.content != "" else ""}\n\n' \
+                                  f"Original message: {content_message.jump_url}",
                     timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
                 )
                 starboard_embed.set_author(name=f"{message.author.display_name}", icon_url=message.author.display_avatar.url)
@@ -94,7 +105,7 @@ class Extension(commands.Cog):
                 await channel_starboard.send(embed=starboard_embed)
 
                 # Because the links in messages can't be embedded by the embed, we need to use regular expressions to extract urls and then send them separately
-                urls = re.findall(r'(https?://[^\s]+)', message.content)
+                urls = re.findall(r'(https?://[^\s]+)', content_message.content)
                 if urls:
                     urlmessage: str = ""
                     for url in urls:
@@ -107,8 +118,8 @@ class Extension(commands.Cog):
                 
                 log("Starboard Message:")
                 log(f"Message by @{message.author.display_name} from #{message.channel.name}:")
-                log(f"Message: {message.content}" if message.content else "")
-                log(f"Attachments: {message.attachments}" if message.attachments else "")
+                log(f"Message: {content_message.content}" if content_message.content else "")
+                log(f"Attachments: {content_message.attachments}" if content_message.attachments else "")
                 log(f"Original message: {message.jump_url}")
 
 async def setup(bot: commands.Bot):
