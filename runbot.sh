@@ -6,9 +6,15 @@ echo "Pulling any new changes on PMAM-Bot/main..."
 git pull
 echo "Finished git pull!"
 
+echo "Backing up current database and log files.."
+rclone copy database.db dropbox:Watcher-Backups --dropbox-batch-mode sync
+rclone copy Logs dropbox:Watcher-Backups/Logs --dropbox-batch-mode sync --transfers 32
+echo "Backup complete!"
+
 echo "Starting The Watcher..."
 ./env/bin/python3 pmam_bot.py
 
 echo "The Watcher has been shutdown, backing up the database..."
-cp database.db database_backup.db
+rclone copy database.db dropbox:Watcher-Backups --dropbox-batch-mode sync
+rclone copy Logs dropbox:Watcher-Backups/Logs --dropbox-batch-mode sync --transfers 32
 echo "Backup complete!"
