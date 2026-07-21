@@ -130,7 +130,12 @@ class Extension(commands.Cog):
                 
                 # If there are any attachments with the message, send those to the channel
                 if content_message.attachments != []:
-                    await channel_starboard.send(content=f"\n{' '.join([attachment.url for attachment in content_message.attachments])}")
+                    await channel_starboard.send(
+                        files=[
+                            await attachment.to_file(spoiler=attachment.is_spoiler())
+                            for attachment in content_message.attachments]
+                        )
+                    [print(i.is_spoiler()) for i in content_message.attachments]
                 
                 log("Starboard Message:")
                 log(f"Message by @{message.author.display_name} from #{message.channel.name}:")
