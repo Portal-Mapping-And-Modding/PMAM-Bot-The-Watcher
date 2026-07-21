@@ -4,18 +4,29 @@ from discord.ext import commands, tasks
 from itertools import cycle
 from steamlib import id_to_name, vanity_to_id, get_friends_ids
 import os, datetime, requests, asyncio, traceback
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from logger import setup_logging, log
 
-token: str = os.getenv('TOKEN')
-pmam_guildid: int = 830239808596606976
-test_guildid: int = 845791759984230430 #! REWORK FOR BOT TO BE ABLE TO BE PROPERLY TESTED
-pmam_channelid_logs: int = 882296490314321961
-pmam_channelid_modmail: int = 1265721193885863936
-pmam_channelid_modbots: int = 830243685135941652
-test_channelid_modmail: int = 845791759984230433
-pmam_messageid_verify: int = 1282465091480064112
-pmam_roleid_robot: int = 830240292183212042
+if os.getenv('TEST') == '1':
+    token = os.getenv('TEST_TOKEN')
+    pmam_guildid: int = 845791759984230430
+    pmam_channelid_logs: int = 1287488941255299325
+    pmam_channelid_modmail: int = 1287489528176709752
+    pmam_channelid_modbots: int = 1287488941255299325
+    pmam_messageid_verify: int = 1287488894769696800
+    pmam_roleid_robot: int = 1286723072975569029
+else:
+    token: str = os.getenv('TOKEN')
+    pmam_guildid: int = 830239808596606976
+    pmam_channelid_logs: int = 882296490314321961
+    pmam_channelid_modmail: int = 1265721193885863936
+    pmam_channelid_modbots: int = 830243685135941652
+    pmam_messageid_verify: int = 1282465091480064112
+    pmam_roleid_robot: int = 830240292183212042
+    
 tz = datetime.datetime.now().astimezone().tzinfo
 
 class PMAMBot(commands.Bot):
