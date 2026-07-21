@@ -13,7 +13,8 @@ if os.getenv('TEST') == '1':
     pmam_emoji_yes: str = '<:vote_yes:1296964724319195188>'
     pmam_emoji_abstain: str = '<:vote_abstain:1296964800982548511>'
     pmam_emoji_no: str = '<:vote_no:1296964759916122207>'
-    starboard_emoji_id: int = 1528483658195931318
+    starboard_emoji_id: int = 1528483599974666410
+    starboard_reactions_needed: int = 1
 else:
     pmam_channelid_starboard: int = 1192917950001315980
     pmam_vote_channelids: typing.List[int] = [1005658147861573642, 1147624721156948068] # #moderator-discussion and #basement-area
@@ -23,8 +24,8 @@ else:
     pmam_emoji_abstain: str = "<:vote_abstain:975946602206363659>"
     pmam_emoji_no: str = "<:vote_no:975946731202183230>"
     starboard_emoji_id: int = 1081025872175308901 #emoji ID used for starboard
+    starboard_reactions_needed: int = 5
     
-starboard_reactions_needed: int = 5
 
 #link_prefixs: typing.List[str] = ["https://steamcommunity.com/sharedfiles/filedetails/", "https://steamcommunity.com/workshop/filedetails/", "https://steamcommunity.com/sharedfiles/itemedittext/"]
 link_regex: re.Pattern = re.compile(r'https://steamcommunity.com/(sharedfiles|workshop)/(filedetails|itemedittext)[/]?\?id\=([0-9]+)')
@@ -101,10 +102,17 @@ class Extension(commands.Cog):
                     if str(message.id) in content: return
                     f.write(f"{str(message.id)}\n")
                 
+                # Message references could also mean replies, but we don't care about those.
+                forwarded = message.reference and message.reference.type == discord.MessageReferenceType.forward
+                content_message = message.message_snapshots[0] if forwarded else message
+                
+                # Ideally we'd have some kind of way to prevent forwarding the same message multiple times
+                # from being starboarded multiple times, but I can't see a way that can be done.
+                
                 starboard_embed = discord.Embed(
                     color = discord.Color.yellow(),
                     description = f"Message by <@!{message.author.id}> from <#{message.channel.id}>:\n\n" \
-                                  f'{f"```{message.content}```" if message.content != "" else ""}\n\n' \
+                                  f'{f"```{content_message.content}```" if content_message.content != "" else ""}\n\n' \
                                   f"Original message: {message.jump_url}",
                     timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
                 )
@@ -121,13 +129,13 @@ class Extension(commands.Cog):
                     await channel_starboard.send(content=urlmessage)
                 
                 # If there are any attachments with the message, send those to the channel
-                if message.attachments != []:
-                    await channel_starboard.send(content=f"\n{' '.join([attachment.url for attachment in message.attachments])}")
+                if content_message.attachments != []:
+                    await channel_starboard.send(content=f"\n{' '.join([attachment.url for attachment in content_message.attachments])}")
                 
                 log("Starboard Message:")
                 log(f"Message by @{message.author.display_name} from #{message.channel.name}:")
-                log(f"Message: {message.content}" if message.content else "")
-                log(f"Attachments: {message.attachments}" if message.attachments else "")
+                log(f"Message: {content_message.content}" if content_message.content else "")
+                log(f"Attachments: {content_message.attachments}" if content_message.attachments else "")
                 log(f"Original message: {message.jump_url}")
 
 async def setup(bot: commands.Bot):

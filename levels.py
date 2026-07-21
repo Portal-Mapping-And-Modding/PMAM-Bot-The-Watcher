@@ -2,12 +2,18 @@ from io import BytesIO
 import discord, sqlite3, requests, datetime, typing
 from discord.ext import commands, tasks
 from PIL import Image, ImageFont, ImageDraw
+import os
 
 from logger import log
 
-pmam_guildid: int = 830239808596606976 #originally 969790418394964019
-pmam_roleid_robot: int = 830240292183212042
-pmam_categorychannel_staff: int = 830243658204184617
+if os.getenv("TEST") == "1":
+    pmam_roleid_robot: int = 1286723072975569029
+    pmam_guildid: int = 969790418394964019
+    pmam_categorychannel_staff: int = 1287488855708008601
+else:
+    pmam_guildid: int = 830239808596606976 #originally 969790418394964019
+    pmam_roleid_robot: int = 830240292183212042
+    pmam_categorychannel_staff: int = 830243658204184617
 
 exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
     1047272745106423838,    # "off-topic-showcasing"
@@ -210,25 +216,32 @@ class leveling_system(commands.Cog):
     @commands.hybrid_command()
     @commands.bot_has_role(pmam_roleid_robot)
     @commands.cooldown(1, 5)
-    async def leaderboard(self, ctx: commands.Context):
+    async def leaderboard(self, ctx: commands.Context, page_number: int = 1):
         # Tell the interaction ahead of time that it received the prompt so it doesn't timeout
         await ctx.defer()
 
         connection = sqlite3.connect("database.db")
         cursor = connection.cursor()
-        cursor.execute("SELECT * FROM users ORDER BY exp DESC")
+        offset = 10 * (page_number - 1)
+        cursor.execute(f'SELECT * FROM users ORDER BY exp DESC LIMIT 10 OFFSET {offset}')
         connection.commit()
-        rank = 1
+        rank = 1 + offset
 
         base_embed = discord.Embed(title="PMaM leaderboard",color=0xf9f02a)
-        for i in cursor.fetchmany(10):
-            try:
-                user_obj = await ctx.guild.fetch_member(i[0])
-                username = user_obj.global_name
-            except Exception:
-                username = str(i[0])
-            base_embed.add_field(name=f"#{rank} {username}", value=f"{i[1]} EXP", inline=False)
-            rank+=1
+        leaderboard_users = cursor.fetchmany(10)
+        
+        # An offset too high will fetch zero users.
+        if len(leaderboard_users) == 0:
+            base_embed.add_field(name='Oops!', value='That page number is too high, try a lower one.')
+        else:    
+            for i in leaderboard_users:
+                try:
+                    user_obj = await ctx.guild.fetch_member(i[0])
+                    username = user_obj.global_name
+                except Exception:
+                    username = str(i[0])
+                base_embed.add_field(name=f"#{rank} {username}", value=f"{i[1]} EXP", inline=False)
+                rank+=1
         
         try:
             cursor.execute("SELECT row_number FROM (SELECT ROW_NUMBER () OVER ( ORDER BY exp DESC ) row_number, id, exp FROM users) WHERE id = ?;",(ctx.author.id, )) #this actually calculates the position of user in the leaderboard

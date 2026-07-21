@@ -12,7 +12,7 @@ from logger import setup_logging, log
 
 if os.getenv('TEST') == '1':
     token = os.getenv('TEST_TOKEN')
-    pmam_guildid: int = 845791759984230430
+    pmam_guildid: int = 969790418394964019
     pmam_channelid_logs: int = 1287488941255299325
     pmam_channelid_modmail: int = 1287489528176709752
     pmam_channelid_modbots: int = 1287488941255299325
