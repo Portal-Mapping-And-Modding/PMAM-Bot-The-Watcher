@@ -34,12 +34,12 @@ class Extension(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
         
-    '''
-    If the provided `message` has any Steam workshop links, 
-    create a thread (or use `thread_override`, if given)
-    and send a steamitem link there.
-    '''
     async def if_map_link_send_steam(self, message: discord.Message, thread_override: discord.Thread | None = None):
+        '''
+        If the provided `message` has any Steam workshop links, 
+        create a thread (or use `thread_override`, if given)
+        and send a steamitem link there.
+        '''
         # If we found at least one Steam workshop link in the message
         matches = re.findall(link_regex, message.content)
         
@@ -109,33 +109,7 @@ class Extension(commands.Cog):
                 # Ideally we'd have some kind of way to prevent forwarding the same message multiple times
                 # from being starboarded multiple times, but I can't see a way that can be done.
                 
-                starboard_embed = discord.Embed(
-                    color = discord.Color.yellow(),
-                    description = f"Message by <@!{message.author.id}> from <#{message.channel.id}>:\n\n" \
-                                  f'{f"```{content_message.content}```" if content_message.content != "" else ""}\n\n' \
-                                  f"Original message: {message.jump_url}",
-                    timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
-                )
-                starboard_embed.set_author(name=f"{message.author.display_name}", icon_url=message.author.display_avatar.url)
-                starboard_embed.set_footer(text=f"Author: {message.author.id} | Message ID: {message.id}")
-                await channel_starboard.send(embed=starboard_embed)
-
-                # Because the links in messages can't be embedded by the embed, we need to use regular expressions to extract urls and then send them separately
-                urls = re.findall(r'(https?://[^\s]+)', message.content)
-                if urls:
-                    urlmessage: str = ""
-                    for url in urls:
-                        urlmessage += url + "\n"
-                    await channel_starboard.send(content=urlmessage)
-                
-                # If there are any attachments with the message, send those to the channel
-                if content_message.attachments != []:
-                    await channel_starboard.send(
-                        files=[
-                            await attachment.to_file(spoiler=attachment.is_spoiler())
-                            for attachment in content_message.attachments]
-                        )
-                    [print(i.is_spoiler()) for i in content_message.attachments]
+                await message.forward(channel_starboard)
                 
                 log("Starboard Message:")
                 log(f"Message by @{message.author.display_name} from #{message.channel.name}:")
