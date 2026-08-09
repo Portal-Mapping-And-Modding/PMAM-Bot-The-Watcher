@@ -109,6 +109,14 @@ class Extension(commands.Cog):
                 # Ideally we'd have some kind of way to prevent forwarding the same message multiple times
                 # from being starboarded multiple times, but I can't see a way that can be done.
                 
+                #embed = discord.Embed(
+                #    color = discord.Color.yellow(),
+                #    description = f"Message ID: {message.id} Author ID: {message.author.id}",
+                #    #timestamp = datetime.datetime.now(tz=datetime.timezone.utc)
+                #)
+                #embed.set_author(name=f"{message.author.display_name}", icon_url=message.author.display_avatar.url)
+                
+                await channel_starboard.send(content=f'-# Message ID: {message.id} Author ID: {message.author.id}')
                 await message.forward(channel_starboard)
                 
                 log("Starboard Message:")
