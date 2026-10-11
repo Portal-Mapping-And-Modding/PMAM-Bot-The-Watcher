@@ -342,11 +342,12 @@ async def purge(ctx: commands.Context, number: int):
 
 @bot.command()
 @commands.bot_has_role(pmam_roleid_robot)
-async def verify(ctx):
+async def verify(ctx: commands.Context):
     time = datetime.datetime.now(datetime.timezone.utc)
     account_time = ctx.author.created_at
     age = time - account_time
     channel = bot.get_channel(pmam_channelid_logs)
+    pmam_server: discord.Guild = bot.get_guild(pmam_guildid)
     with open("./locked_ids.txt","r") as f:
         banned_ids = f.read()
         if str(ctx.author.id) in banned_ids:
@@ -358,9 +359,11 @@ async def verify(ctx):
         if role in ctx.author.roles:
             await ctx.send('You are already verified!')
         else:
-            await ctx.send("Verification successful!")
+            author: discord.Member = await pmam_server.fetch_member(ctx.author.id)
+            
+            await author.add_roles(role)
             await asyncio.sleep(1)
-            await ctx.author.add_roles(role)
+            await ctx.send("Verification successful!")
             await asyncio.sleep(1)
             await ctx.channel.purge(limit = 2)
     else:

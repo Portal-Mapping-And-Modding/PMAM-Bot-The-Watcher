@@ -23,7 +23,7 @@ else:
     pmam_emoji_yes: str = "<:vote_yes:975946668379889684>"
     pmam_emoji_abstain: str = "<:vote_abstain:975946602206363659>"
     pmam_emoji_no: str = "<:vote_no:975946731202183230>"
-    starboard_emoji_id: int = 1081025872175308901 #emoji ID used for starboard
+    starboard_emoji_id: int = 1558857775998828554 #emoji ID used for starboard
     starboard_reactions_needed: int = 5
     
 
