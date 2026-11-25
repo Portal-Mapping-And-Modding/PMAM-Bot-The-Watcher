@@ -18,6 +18,9 @@ if os.getenv('TEST') == '1':
     pmam_channelid_modbots: int = 1287488941255299325
     pmam_messageid_verify: int = 1287488894769696800
     pmam_roleid_robot: int = 1286723072975569029
+    helpforum_tag_openquestion: int = 1575149713353605201
+    helpforum_tag_closedquestion: int = 1575154377650606181
+    helpforum_channel_id: int = 1575147227884683356
 else:
     token: str = os.getenv('TOKEN')
     pmam_guildid: int = 830239808596606976
@@ -26,6 +29,9 @@ else:
     pmam_channelid_modbots: int = 830243685135941652
     pmam_messageid_verify: int = 1282465091480064112
     pmam_roleid_robot: int = 830240292183212042
+    helpforum_tag_openquestion: int = 1574120776158806077
+    helpforum_tag_closedquestion: int = 1574120810896035890
+    helpforum_channel_id: int = 1574120669543665784
     
 tz = datetime.datetime.now().astimezone().tzinfo
 
@@ -244,7 +250,14 @@ async def on_message_edit(before, after):
     await channel.send(embed=embed)
 
 @bot.event
-async def on_message(message):
+async def on_message(message: discord.Message):
+    # The very first message in a forum post has the same ID as the post itself    
+    if isinstance(message.channel, discord.Thread)        \
+    and message.channel.parent_id == helpforum_channel_id \
+    and message.id == message.channel.id:
+        forum: discord.ForumChannel = message.channel.parent
+        await message.thread.add_tags(forum.get_tag(helpforum_tag_openquestion))
+    
     if message.author.bot or (not isinstance(message.channel, discord.DMChannel)) or (bot.get_guild(pmam_guildid).get_member(message.author.id) == None):
         await bot.process_commands(message)
         return
@@ -635,6 +648,29 @@ async def reply(ctx: commands.Context, user: discord.Member, *, message: str):
     
     await bot.get_user(user.id).send(f"From the PMAM Moderation Team:\n\n {message}")
     await ctx.send(f"DM has been sent to {user.name}!", ephemeral=True)
+    
+@bot.tree.command(name='close', description='Mark this help thread solved')
+async def closeHelpThread(interaction: discord.Interaction):
+    if not isinstance(interaction.channel, discord.Thread) \
+        or interaction.channel.parent_id != helpforum_channel_id:
+            
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                color=discord.Color.red(),
+                title='Error',
+                description=f'Use this command in <#{helpforum_channel_id}> threads!'
+            ),
+            ephemeral=True
+        )
+        return
+    
+    forum = interaction.channel.parent
+    await interaction.channel.remove_tags(forum.get_tag(helpforum_tag_openquestion))
+    await interaction.channel.add_tags(forum.get_tag(helpforum_tag_closedquestion))
+    await interaction.response.send_message(
+        ephemeral=True,
+        content='Marked solved!'
+    )
 
 setup_logging(os.getcwd())
 bot.run(token, log_handler=None, root_logger=True)

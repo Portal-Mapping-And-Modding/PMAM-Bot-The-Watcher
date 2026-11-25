@@ -10,22 +10,34 @@ if os.getenv("TEST") == "1":
     pmam_roleid_robot: int = 1286723072975569029
     pmam_guildid: int = 969790418394964019
     pmam_categorychannel_staff: int = 1287488855708008601
+    
+    exp_channels = [
+        969790658611134544 # bot-testing-and-dev
+    ]
+    
+    exp_forums = [
+        1575147227884683356 # amazing-help-forum
+    ]
 else:
     pmam_guildid: int = 830239808596606976 #originally 969790418394964019
     pmam_roleid_robot: int = 830240292183212042
     pmam_categorychannel_staff: int = 830243658204184617
+    exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
+        1047272745106423838,    # "off-topic-showcasing"
+        830243614382227498,     # "help-modding"
+        830243415009918996,     # "help-mapping"
+        1136502439504252938,    # "help-puzzles"
+        830243544269717555,     # "help-assets"
+        941813875538538627,     # "playtesting"
+        830518892786876489,     # "showcasing"
+        922653836626243654,     # "finished-map-links"
+        930548541607280731      # "tips"
+    ] 
 
-exp_channels = [ # Individual channels which allow users to earn exp, any channel not listed here, except for the mod channels, will not allow users to earn EXP
-    1047272745106423838,    # "off-topic-showcasing"
-    830243614382227498,     # "help-modding"
-    830243415009918996,     # "help-mapping"
-    1136502439504252938,    # "help-puzzles"
-    830243544269717555,     # "help-assets"
-    941813875538538627,     # "playtesting"
-    830518892786876489,     # "showcasing"
-    922653836626243654,     # "finished-map-links"
-    930548541607280731      # "tips"
-] 
+    # Messages sent in any thread of any forum here will earn experience
+    exp_forums = [
+        1574120669543665784 # "help-forum"
+    ]
 
 font_colors = {"0": (143, 143, 143), "1": (172, 161, 144), "2": (175, 147, 108), "3": (164, 122, 102), "4": (185, 93, 81) ,"5": (193, 66, 66)} #font colors for card generation
 font = ImageFont.truetype("DIN-Bold.ttf", 102)
@@ -34,7 +46,7 @@ font3 = ImageFont.truetype("DIN-Bold.ttf", 69)
 level_roles_ids = [894351178702397520, 1261327532934959186, 1261328505367695360, 1261329668561178756, 1261330263099707503, 1261330725010149486] #originally [1261326357002981386, 1261326272181698661, 1261326153629831249, 1261326092631933018, 1261325982749692026, 1261325887295717409]
 
 def add_exp(user, amount):
-
+    print('adding exp')
     connection = sqlite3.connect("database.db")
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?;", (user, ))
@@ -85,12 +97,15 @@ class leveling_system(commands.Cog):
         self.cooldowns = {}
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if isinstance(message.channel, discord.DMChannel):
             return
 
-        if (message.guild.id != pmam_guildid) or (message.author.bot) or ((message.channel.id not in exp_channels) and (message.channel.category_id != pmam_categorychannel_staff)):
-            return
+        if (message.guild.id != pmam_guildid) \
+            or (message.author.bot) \
+            or ((message.channel.id not in exp_channels) and (message.channel.parent.id not in exp_forums) \
+                and (message.channel.category_id != pmam_categorychannel_staff)
+            ): return
 
         if message.author.id not in self.cooldowns.keys():
             self.cooldowns[message.author.id] = datetime.datetime.timestamp(datetime.datetime.now())
