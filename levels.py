@@ -46,7 +46,6 @@ font3 = ImageFont.truetype("DIN-Bold.ttf", 69)
 level_roles_ids = [894351178702397520, 1261327532934959186, 1261328505367695360, 1261329668561178756, 1261330263099707503, 1261330725010149486] #originally [1261326357002981386, 1261326272181698661, 1261326153629831249, 1261326092631933018, 1261325982749692026, 1261325887295717409]
 
 def add_exp(user, amount):
-    print('adding exp')
     connection = sqlite3.connect("database.db")
     cursor = connection.cursor()
     cursor.execute("SELECT * FROM users WHERE id = ?;", (user, ))
@@ -103,7 +102,7 @@ class leveling_system(commands.Cog):
 
         if (message.guild.id != pmam_guildid) \
             or (message.author.bot) \
-            or ((message.channel.id not in exp_channels) and (message.channel.parent.id not in exp_forums) \
+            or ((message.channel.id not in exp_channels) and (isinstance(message.channel, discord.Thread) and message.channel.parent.id not in exp_forums) \
                 and (message.channel.category_id != pmam_categorychannel_staff)
             ): return
 
